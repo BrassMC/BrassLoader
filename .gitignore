@@ -20,3 +20,15 @@ build
 # other
 eclipse
 run
+*.jar
+
+# minecraft
+server.properties
+eula.txt
+world/
+banned-ips.json
+banned-players.json
+ops.json
+whitelist.json
+usercache.json
+logs/

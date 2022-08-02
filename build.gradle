@@ -1,19 +1,27 @@
 plugins {
-    id 'application'
+    id 'java'
 }
 
 repositories {
     mavenCentral()
 
+//    maven {
+//        name = 'forge'
+//        url = 'https://maven.minecraftforge.net/'
+//    }
     maven {
-        name = 'forge'
-        url = 'https://maven.minecraftforge.net/'
+        name = "ASM"
+        url = "https://repository.ow2.org/nexus/content/repositories/releases"
     }
 }
 
 dependencies {
-    implementation 'com.google.guava:guava:31.0.1-jre'
-    implementation 'cpw.mods:modlauncher:10.0.8'
+    implementation 'com.google.guava:guava:31.1-jre'
+    // implementation 'cpw.mods:modlauncher:10.0.8'
+    implementation 'org.jetbrains:annotations:23.0.0'
+    implementation 'org.ow2.asm:asm:9.3'
+    implementation 'org.slf4j:slf4j-api:1.8.0-beta4'
+    implementation 'org.slf4j:slf4j-log4j12:1.8.0-beta4'
 }
 
 testing {
@@ -22,10 +30,6 @@ testing {
             useJUnit('4.13.2')
         }
     }
-}
-
-application {
-    mainClass = 'io.github.brassmc.brassloader.BrassLoader'
 }
 
 java {
