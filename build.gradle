@@ -2,6 +2,10 @@ plugins {
     id 'java'
 }
 
+plugins {
+    id 'io.github.brassmc.bradle' version '1.0.0'
+}
+
 repositories {
     mavenCentral()
 
@@ -13,10 +17,6 @@ repositories {
         name = "ASM"
         url = "https://repository.ow2.org/nexus/content/repositories/releases"
     }
-}
-
-plugins {
-    id 'io.github.brassmc.bradle' version '1.0.0'
 }
 
 minecraft {

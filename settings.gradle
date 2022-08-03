@@ -1,5 +1,3 @@
-rootProject.name = 'BrassLoader'
-
 pluginManagement {
     repositories {
         gradlePluginPortal()
@@ -8,3 +6,5 @@ pluginManagement {
         }
     }
 }
+
+rootProject.name = 'BrassLoader'
