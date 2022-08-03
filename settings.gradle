@@ -1,1 +1,10 @@
 rootProject.name = 'BrassLoader'
+
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven {
+            url 'https://repo.repsy.io/mvn/brassmc/public'
+        }
+    }
+}
