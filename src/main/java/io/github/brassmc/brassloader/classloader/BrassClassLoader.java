@@ -18,6 +18,13 @@ public class BrassClassLoader extends URLClassLoader {
 
     @Override
     public Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        try {
+            // System classpath should be classloaded normally
+            return getParent().loadClass(name);
+        } catch (ClassNotFoundException ignored) {
+            // If we can't find the class on the system cp, we can go on with transformation
+        }
+
         ClassReader reader = null;
         for (Transformer transformer : transformers) {
             if (transformer.canApply(name)) {
@@ -38,10 +45,6 @@ public class BrassClassLoader extends URLClassLoader {
             var writer = new ClassWriter(Opcodes.ASM9); // TODO: Make sure this works with Mixin or something?!
             byte[] bytes = writer.toByteArray();
             return this.defineClass(name, bytes, 0, bytes.length);
-        }
-
-        if (name.startsWith("java.") || name.startsWith("jdk.") || name.startsWith("sun.")) {
-            return this.getClass().getClassLoader().getParent().loadClass(name);
         }
 
         var stream = this.getResourceAsStream(name.replace(".", "/") + ".class");
