@@ -1,0 +1,13 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="BrassClient" type="Application" factoryName="Application">
+    <option name="ALTERNATIVE_JRE_PATH" value="17" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <option name="MAIN_CLASS_NAME" value="io.github.brassmc.brassloader.launcher.ClientLauncher" />
+    <module name="BrassLoader.main" />
+    <option name="PROGRAM_PARAMETERS" value="--accessToken bruh --version 1.19.1" />
+    <option name="VM_PARAMETERS" value="-Xmx8G -Dorg.lwjgl.util.Debug=true" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
