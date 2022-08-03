@@ -9,6 +9,10 @@ import java.net.URL;
 import java.net.URLClassLoader;
 
 public class BrassClassLoader extends URLClassLoader {
+    static {
+        ClassLoader.registerAsParallelCapable();
+    }
+
     private final Transformer[] transformers;
 
     public BrassClassLoader(URL[] urls, ClassLoader classLoader) {
@@ -25,40 +29,47 @@ public class BrassClassLoader extends URLClassLoader {
             // If we can't find the class on the system cp, we can go on with transformation
         }
 
-        ClassReader reader = null;
-        for (Transformer transformer : transformers) {
-            if (transformer.canApply(name)) {
-                //BrassLoader.getInstance().getLogger().info("Transforming class {}", name);
-                System.out.printf("Transforming class %s\n!", name);
+        synchronized (getClassLoadingLock(name)) {
+            final var loaded = findLoadedClass(name);
+            if (loaded == null) {
+                ClassReader reader = null;
+                for (Transformer transformer : transformers) {
+                    if (transformer.canApply(name)) {
+                        //BrassLoader.getInstance().getLogger().info("Transforming class {}", name);
+                        System.out.printf("Transforming class %s\n!", name);
+                        try {
+                            // FIXME: Make this actually apply the transformation!
+                            reader = new ClassReader(name);
+                            transformer.apply(name, reader);
+                        } catch (IOException exception) {
+                            throw new RuntimeException(exception);
+                        }
+                    }
+                }
+
+                // Maybe we'll have to do some duplicate management?!
+                if (reader != null) {
+                    var writer = new ClassWriter(Opcodes.ASM9); // TODO: Make sure this works with Mixin or something?!
+                    byte[] bytes = writer.toByteArray();
+                    return this.defineClass(name, bytes, 0, bytes.length);
+                }
+
+                var stream = this.getResourceAsStream(name.replace(".", "/") + ".class");
+                if (stream == null) {
+                    throw new ClassNotFoundException("Could not locate class %s".formatted(name));
+                }
+
                 try {
-                    // FIXME: Make this actually apply the transformation!
-                    reader = new ClassReader(name);
-                    transformer.apply(name, reader);
+                    var bytes = stream.readAllBytes();
+                    return this.defineClass(name, bytes, 0, bytes.length);
                 } catch (IOException exception) {
-                    throw new RuntimeException(exception);
+                    throw new ClassNotFoundException(exception.getMessage());
                 }
             }
-        }
-
-        // Maybe we'll have to do some duplicate management?!
-        if (reader != null) {
-            var writer = new ClassWriter(Opcodes.ASM9); // TODO: Make sure this works with Mixin or something?!
-            byte[] bytes = writer.toByteArray();
-            return this.defineClass(name, bytes, 0, bytes.length);
-        }
-
-        var stream = this.getResourceAsStream(name.replace(".", "/") + ".class");
-        if (stream == null) {
-            throw new ClassNotFoundException("Could not locate class %s".formatted(name));
-        }
-
-        try {
-            var bytes = stream.readAllBytes();
-            return this.defineClass(name, bytes, 0, bytes.length);
-        } catch (IOException exception) {
-            throw new ClassNotFoundException(exception.getMessage());
+            return loaded;
         }
     }
+
 
     static {
         registerAsParallelCapable();
