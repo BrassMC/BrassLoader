@@ -4,7 +4,7 @@ import java.nio.file.Files
 
 plugins {
     id 'java'
-    id 'io.github.brassmc.bradle' version '0.2.3'
+    id 'io.github.brassmc.bradle' version '0.3.0'
 }
 
 repositories {
@@ -69,6 +69,16 @@ tasks.create('remapMcClient', RemapJarTask) {
     from(downloadMcClient)
 }
 
+tasks.create('downloadMcServer', DownloadMCTask) {
+    group = 'minecraft'
+    side = 'server'
+    output = project.file('run/server.jar')
+}
+tasks.create('remapMcServer', RemapJarTask) {
+    group = 'minecraft'
+    from(downloadMcServer)
+}
+
 jar {
     manifest.attributes([
             'Automatic-Module-Name': 'io.github.brassmc.brassloader'
@@ -117,6 +127,16 @@ tasks.create('runClient', JavaExec) {
             '--launchTarget', 'brass:mcclient',
             '--accessToken', '***',
             '--version', '1.19.1'
+    )
+    configureRunTask(it)
+}
+tasks.create('runServer', JavaExec) {
+    setWorkingDir(project.file('run/server'))
+    jvmArgs(
+            "-Dbrassloader.mclocation=${project.file('run/server_mapped.jar')}"
+    )
+    args(
+            '--launchTarget', 'brass:mcserver',
     )
     configureRunTask(it)
 }
