@@ -1,10 +1,11 @@
 import io.github.brassmc.bradle.task.DownloadMCTask
 import io.github.brassmc.bradle.task.RemapJarTask
 import java.nio.file.Files
+import java.util.function.Function
 
 plugins {
     id 'java'
-    id 'io.github.brassmc.bradle' version '0.3.0'
+    id 'io.github.brassmc.bradle' version '0.4.0'
 }
 
 repositories {
@@ -31,6 +32,9 @@ sourceSets {
 configurations {
     boot
 
+    minecraftRuntime
+    minecraftClientRuntime.extendsFrom(minecraftRuntime)
+    minecraftServerRuntime.extendsFrom(minecraftRuntime)
     mixinImplementation.extendsFrom minecraftRuntime
 }
 
@@ -49,7 +53,7 @@ dependencies {
 
     asm.each {
         boot it
-        minecraftRuntime it
+        compileOnly it
     }
 
     compileOnly "cpw.mods:securejarhandler:$sshVersion"
@@ -104,28 +108,32 @@ jar {
     ])
 }
 
-final legacyCpPath = project.file("$buildDir/resources/main/mc_cp.txt").toPath().toAbsolutePath()
+final Function<String, java.nio.file.Path> legacyCpPath = (String type) -> project.file("$buildDir/resources/main/mc_cp_${type}.txt").toPath().toAbsolutePath()
 
 processResources {
     doLast {
-        final lines = configurations.minecraftRuntime.resolve().stream()
-                .map { it.toPath().toAbsolutePath().toString() }
-                .toList()
-        final outPath = legacyCpPath
-        lines.add(jar.archiveFile.get().asFile.toString())
-        Files.createDirectories(outPath.parent)
-        Files.write(outPath, lines)
+        final configurationResolver = { String type ->
+            final lines = configurations."minecraft${type.capitalize()}Runtime".resolve().stream()
+                    .map { it.toPath().toAbsolutePath().toString() }
+                    .toList()
+            final outPath = legacyCpPath.apply(type)
+            lines.add(jar.archiveFile.get().asFile.toString())
+            Files.createDirectories(outPath.parent)
+            Files.write(outPath, lines)
+        }
+        configurationResolver('client')
+        configurationResolver('server')
     }
 }
 
 //noinspection GroovyAssignabilityCheck
-final var configureRunTask = { JavaExec it ->
+final var configureRunTask = { JavaExec it, String type ->
     it.dependsOn('jar')
     it.getMainClass().set('cpw.mods.bootstraplauncher.BootstrapLauncher')
     final sshModule = 'cpw.mods.securejarhandler'
     it.jvmArgs(
             '--module-path', configurations.boot.resolve().stream().map { it.toString() }.toList().join(';'),
-            "-DlegacyClassPath.file=$legacyCpPath",
+            "-DlegacyClassPath.file=${legacyCpPath.apply(type)}",
             '--add-modules', 'ALL-MODULE-PATH',
             '--add-opens', "java.base/java.util.jar=$sshModule",
             '--add-opens', "java.base/java.lang.invoke=$sshModule",
@@ -145,9 +153,11 @@ tasks.create('runClient', JavaExec) {
     args(
             '--launchTarget', 'brass:mcclient',
             '--accessToken', '***',
-            '--version', '1.19.1'
+            '--version', '1.19.1',
+            '--assetIndex', '1.19',
+            '--assetsDir', downloadAssets.output
     )
-    configureRunTask(it)
+    configureRunTask(it, 'client')
 }
 tasks.create('runServer', JavaExec) {
     setWorkingDir(project.file('run/server'))
@@ -157,5 +167,5 @@ tasks.create('runServer', JavaExec) {
     args(
             '--launchTarget', 'brass:mcserver',
     )
-    configureRunTask(it)
+    configureRunTask(it, 'server')
 }

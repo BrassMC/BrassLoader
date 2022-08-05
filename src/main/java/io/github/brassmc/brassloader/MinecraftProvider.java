@@ -15,6 +15,9 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * This empty transformation service handles adding MC to the game layer.
+ */
 @AutoService(ITransformationService.class)
 public class MinecraftProvider implements ITransformationService {
     public static final String MC_LOCATION_PROP = "brassloader.mclocation";
