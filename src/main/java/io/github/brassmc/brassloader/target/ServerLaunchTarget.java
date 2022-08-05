@@ -5,6 +5,8 @@ import cpw.mods.modlauncher.api.ILaunchHandlerService;
 import cpw.mods.modlauncher.api.ServiceRunner;
 import io.github.brassmc.brassloader.util.Environment;
 
+import java.lang.reflect.Method;
+
 @AutoService(ILaunchHandlerService.class)
 public class ServerLaunchTarget extends BaseLaunchTarget {
     public ServerLaunchTarget() {
@@ -19,8 +21,9 @@ public class ServerLaunchTarget extends BaseLaunchTarget {
     @Override
     public ServiceRunner launchService(String[] arguments, ModuleLayer gameLayer) {
         return () -> {
-            final var mcClass = Class.forName(gameLayer.findModule("minecraft").orElseThrow(), "net.minecraft.server.Main");
-            mcClass.getMethod("main", String[].class).invoke(null, (Object) arguments);
+            final Class<?> mainClass = Class.forName(gameLayer.findModule("minecraft").orElseThrow(), "net.minecraft.server.Main");
+            Method mainMethod = mainClass.getMethod("main", String[].class);
+            mainMethod.invoke(null, (Object) arguments);
         };
     }
 }

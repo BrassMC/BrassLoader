@@ -10,8 +10,8 @@ public abstract class BaseLaunchTarget implements ILaunchHandlerService {
             final var method = Environment.class.getDeclaredMethod("setCurrent", Environment.class);
             method.setAccessible(true);
             method.invoke(null, environment);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to set environment", e);
+        } catch (Exception exception) {
+            throw new RuntimeException("Failed to set environment", exception);
         }
     }
 
