@@ -4,6 +4,7 @@ pluginManagement {
         maven {
             url 'https://repo.repsy.io/mvn/brassmc/public'
         }
+        mavenLocal()
     }
 }
 

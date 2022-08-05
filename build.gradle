@@ -1,15 +1,19 @@
+import io.github.brassmc.bradle.task.DownloadMCTask
+import io.github.brassmc.bradle.task.RemapJarTask
+import java.nio.file.Files
+
 plugins {
     id 'java'
-    id 'io.github.brassmc.bradle' version '0.1.0'
+    id 'io.github.brassmc.bradle' version '0.2.3'
 }
 
 repositories {
     mavenCentral()
 
-//    maven {
-//        name = 'forge'
-//        url = 'https://maven.minecraftforge.net/'
-//    }
+    maven {
+        name = 'forge'
+        url = 'https://maven.minecraftforge.net/'
+    }
     maven {
         name = "ASM"
         url = "https://repository.ow2.org/nexus/content/repositories/releases"
@@ -20,13 +24,29 @@ minecraft {
     minecraftVersion = '1.19.1'
 }
 
+sourceSets {
+    boot
+}
+
+configurations {
+    boot
+    bootImplementation.extendsFrom boot
+}
+
 dependencies {
     implementation 'com.google.guava:guava:31.1-jre'
-    // implementation 'cpw.mods:modlauncher:10.0.8'
     implementation 'org.jetbrains:annotations:23.0.0'
 
     implementation 'org.ow2.asm:asm:9.3'
     implementation 'org.ow2.asm:asm-tree:9.3'
+
+    boot 'cpw.mods:bootstraplauncher:1.1.2'
+    boot 'cpw.mods:securejarhandler:2.1.4'
+    bootCompileOnly 'cpw.mods:modlauncher:10.0.8'
+    minecraftRuntime 'cpw.mods:modlauncher:10.0.8'
+
+    bootCompileOnly group:'com.google.auto.service', name:'auto-service', version:'1.0.1'
+    bootAnnotationProcessor group:'com.google.auto.service', name:'auto-service', version:'1.0.1'
 }
 
 testing {
@@ -41,4 +61,68 @@ java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(17))
     }
+}
+
+tasks.create('downloadMcClient', DownloadMCTask) {
+    group = 'minecraft'
+    side = 'client'
+    output = project.file('run/client.jar')
+}
+tasks.create('remapMcClient', RemapJarTask) {
+    group = 'minecraft'
+    from(downloadMcClient)
+}
+
+tasks.create('bootJar', org.gradle.jvm.tasks.Jar) {
+    classifier 'boot'
+    manifest.attributes([
+            'Automatic-Module-Name': 'io.github.brassmc.brassloader.boot'
+    ])
+    from sourceSets.boot.output
+}
+
+final legacyCpPath = project.file("$buildDir/resources/boot/mc_cp.txt").toPath().toAbsolutePath()
+
+processBootResources {
+    doLast {
+        final lines = configurations.minecraftRuntime.resolve().stream()
+                .map { it.toPath().toAbsolutePath().toString() }
+                .toList()
+        final outPath = legacyCpPath
+        lines.add(bootJar.archiveFile.get().asFile.toString())
+        Files.createDirectories(outPath.parent)
+        Files.write(outPath, lines)
+    }
+}
+
+//noinspection GroovyAssignabilityCheck
+final var configureRunTask = { JavaExec it ->
+    it.dependsOn('bootJar')
+    it.getMainClass().set('cpw.mods.bootstraplauncher.BootstrapLauncher')
+    final sshModule = 'cpw.mods.securejarhandler'
+    it.jvmArgs(
+            '--module-path', configurations.boot.resolve().stream().map { it.toString() }.toList().join(';'),
+            "-DlegacyClassPath.file=$legacyCpPath",
+            '--add-modules', 'ALL-MODULE-PATH',
+            '--add-opens', "java.base/java.util.jar=$sshModule",
+            '--add-opens', "java.base/java.lang.invoke=$sshModule",
+            '--add-exports', "java.base/sun.security.util=$sshModule",
+            '--add-exports', 'jdk.naming.dns/com.sun.jndi.dns=java.naming'
+    )
+    it.group = 'minecraft'
+
+    Files.createDirectories(it.workingDir.toPath())
+}
+
+tasks.create('runClient', JavaExec) {
+    setWorkingDir(project.file('run/client'))
+    jvmArgs(
+            "-Dbrassloader.mclocation=${downloadMcClient.output.get().asFile.toString()}"
+    )
+    args(
+            '--launchTarget', 'brass:mcclient',
+            '--accessToken', '***',
+            '--version', '1.19.1'
+    )
+    configureRunTask(it)
 }
