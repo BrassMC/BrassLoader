@@ -24,32 +24,50 @@ minecraft {
     minecraftVersion = '1.19.1'
 }
 
+sourceSets {
+    mixin
+}
+
 configurations {
     boot
+
+    mixinImplementation.extendsFrom minecraftRuntime
 }
+
+final asm = [
+        "org.ow2.asm:asm:$asmVersion",
+        "org.ow2.asm:asm-util:$asmVersion",
+        "org.ow2.asm:asm-tree:$asmVersion"
+]
 
 dependencies {
     implementation 'com.google.guava:guava:31.1-jre'
     implementation 'org.jetbrains:annotations:23.0.0'
 
-    implementation 'org.ow2.asm:asm:9.3'
-    implementation 'org.ow2.asm:asm-tree:9.3'
-
     boot 'cpw.mods:bootstraplauncher:1.1.2'
-    boot 'cpw.mods:securejarhandler:2.1.4'
+    boot "cpw.mods:securejarhandler:$sshVersion"
 
-    compileOnly 'cpw.mods:securejarhandler:2.1.4'
-    minecraftRuntime 'cpw.mods:modlauncher:10.0.8'
+    asm.each {
+        boot it
+        minecraftRuntime it
+    }
+
+    compileOnly "cpw.mods:securejarhandler:$sshVersion"
+    minecraftRuntime "cpw.mods:modlauncher:$mmlVersion"
+    minecraftRuntime "org.spongepowered:mixin:$mixinVersion"
 
     compileOnly group:'com.google.auto.service', name:'auto-service', version:'1.0.1'
     annotationProcessor group:'com.google.auto.service', name:'auto-service', version:'1.0.1'
+
+    mixinImplementation sourceSets.main.output
 }
 
-testing {
-    suites {
-        test {
-            useJUnit('4.13.2')
-        }
+processMixinResources {
+    inputs.properties([
+            'mixinVersion': mixinVersion
+    ])
+    filesMatching('brassloader.mixins.json') {
+        expand 'mixinVersion': mixinVersion
     }
 }
 
@@ -80,6 +98,7 @@ tasks.create('remapMcServer', RemapJarTask) {
 }
 
 jar {
+    from sourceSets.mixin.output
     manifest.attributes([
             'Automatic-Module-Name': 'io.github.brassmc.brassloader'
     ])
