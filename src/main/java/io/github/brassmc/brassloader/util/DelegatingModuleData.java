@@ -1,4 +1,4 @@
-package io.github.brassmc.brassloaderboot.util;
+package io.github.brassmc.brassloader.util;
 
 import cpw.mods.jarhandling.SecureJar;
 

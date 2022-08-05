@@ -1,4 +1,4 @@
-package io.github.brassmc.brassloaderboot;
+package io.github.brassmc.brassloader.transform;
 
 import com.google.auto.service.AutoService;
 import cpw.mods.modlauncher.serviceapi.ILaunchPluginService;

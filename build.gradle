@@ -24,13 +24,8 @@ minecraft {
     minecraftVersion = '1.19.1'
 }
 
-sourceSets {
-    boot
-}
-
 configurations {
     boot
-    bootImplementation.extendsFrom boot
 }
 
 dependencies {
@@ -42,11 +37,12 @@ dependencies {
 
     boot 'cpw.mods:bootstraplauncher:1.1.2'
     boot 'cpw.mods:securejarhandler:2.1.4'
-    bootCompileOnly 'cpw.mods:modlauncher:10.0.8'
+
+    compileOnly 'cpw.mods:securejarhandler:2.1.4'
     minecraftRuntime 'cpw.mods:modlauncher:10.0.8'
 
-    bootCompileOnly group:'com.google.auto.service', name:'auto-service', version:'1.0.1'
-    bootAnnotationProcessor group:'com.google.auto.service', name:'auto-service', version:'1.0.1'
+    compileOnly group:'com.google.auto.service', name:'auto-service', version:'1.0.1'
+    annotationProcessor group:'com.google.auto.service', name:'auto-service', version:'1.0.1'
 }
 
 testing {
@@ -73,23 +69,21 @@ tasks.create('remapMcClient', RemapJarTask) {
     from(downloadMcClient)
 }
 
-tasks.create('bootJar', org.gradle.jvm.tasks.Jar) {
-    classifier 'boot'
+jar {
     manifest.attributes([
-            'Automatic-Module-Name': 'io.github.brassmc.brassloader.boot'
+            'Automatic-Module-Name': 'io.github.brassmc.brassloader'
     ])
-    from sourceSets.boot.output
 }
 
-final legacyCpPath = project.file("$buildDir/resources/boot/mc_cp.txt").toPath().toAbsolutePath()
+final legacyCpPath = project.file("$buildDir/resources/main/mc_cp.txt").toPath().toAbsolutePath()
 
-processBootResources {
+processResources {
     doLast {
         final lines = configurations.minecraftRuntime.resolve().stream()
                 .map { it.toPath().toAbsolutePath().toString() }
                 .toList()
         final outPath = legacyCpPath
-        lines.add(bootJar.archiveFile.get().asFile.toString())
+        lines.add(jar.archiveFile.get().asFile.toString())
         Files.createDirectories(outPath.parent)
         Files.write(outPath, lines)
     }
@@ -97,7 +91,7 @@ processBootResources {
 
 //noinspection GroovyAssignabilityCheck
 final var configureRunTask = { JavaExec it ->
-    it.dependsOn('bootJar')
+    it.dependsOn('jar')
     it.getMainClass().set('cpw.mods.bootstraplauncher.BootstrapLauncher')
     final sshModule = 'cpw.mods.securejarhandler'
     it.jvmArgs(
@@ -117,7 +111,7 @@ final var configureRunTask = { JavaExec it ->
 tasks.create('runClient', JavaExec) {
     setWorkingDir(project.file('run/client'))
     jvmArgs(
-            "-Dbrassloader.mclocation=${downloadMcClient.output.get().asFile.toString()}"
+            "-Dbrassloader.mclocation=${project.file('run/client_mapped.jar')}"
     )
     args(
             '--launchTarget', 'brass:mcclient',

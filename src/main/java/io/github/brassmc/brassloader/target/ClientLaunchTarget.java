@@ -1,21 +1,19 @@
-package io.github.brassmc.brassloaderboot.target;
+package io.github.brassmc.brassloader.target;
 
 import com.google.auto.service.AutoService;
 import cpw.mods.modlauncher.api.ILaunchHandlerService;
-import cpw.mods.modlauncher.api.ITransformingClassLoaderBuilder;
 import cpw.mods.modlauncher.api.ServiceRunner;
+import io.github.brassmc.brassloader.util.Environment;
 
 @AutoService(ILaunchHandlerService.class)
-public class ClientLaunchTarget implements ILaunchHandlerService {
+public class ClientLaunchTarget extends BaseLaunchTarget {
+    public ClientLaunchTarget() {
+        super(Environment.CLIENT);
+    }
+
     @Override
     public String name() {
         return "brass:mcclient";
-    }
-
-    @SuppressWarnings("removal")
-    @Override
-    public void configureTransformationClassLoader(ITransformingClassLoaderBuilder builder) {
-
     }
 
     @Override

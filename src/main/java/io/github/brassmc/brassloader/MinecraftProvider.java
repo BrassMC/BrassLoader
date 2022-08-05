@@ -1,4 +1,4 @@
-package io.github.brassmc.brassloaderboot;
+package io.github.brassmc.brassloader;
 
 import com.google.auto.service.AutoService;
 import cpw.mods.jarhandling.SecureJar;
@@ -6,8 +6,8 @@ import cpw.mods.modlauncher.api.IEnvironment;
 import cpw.mods.modlauncher.api.IModuleLayerManager;
 import cpw.mods.modlauncher.api.ITransformationService;
 import cpw.mods.modlauncher.api.ITransformer;
-import io.github.brassmc.brassloaderboot.util.DelegatingModuleData;
-import io.github.brassmc.brassloaderboot.util.DelegatingSecureJar;
+import io.github.brassmc.brassloader.util.DelegatingModuleData;
+import io.github.brassmc.brassloader.util.DelegatingSecureJar;
 
 import javax.annotation.Nonnull;
 import java.lang.module.ModuleDescriptor;
