@@ -2,8 +2,9 @@
   "required": true,
   "package": "io.github.brassmc.brassloader.mixin",
   "compatibilityLevel": "JAVA_17",
-  "mixins": [
-    "MinecraftMixin"
+  "client": [
+    "MinecraftMixin",
+    "TitleScreenMixin"
   ],
   "minVersion": "${mixinVersion}",
   "injectors": {

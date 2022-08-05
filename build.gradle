@@ -15,9 +15,8 @@ repositories {
         name = 'forge'
         url = 'https://maven.minecraftforge.net/'
     }
-    maven {
-        name = "ASM"
-        url = "https://repository.ow2.org/nexus/content/repositories/releases"
+    flatDir {
+        dir(project.file('run'))
     }
 }
 
@@ -35,7 +34,7 @@ configurations {
     minecraftRuntime
     minecraftClientRuntime.extendsFrom(minecraftRuntime)
     minecraftServerRuntime.extendsFrom(minecraftRuntime)
-    mixinImplementation.extendsFrom minecraftRuntime
+    mixinImplementation.extendsFrom minecraftClientRuntime
 }
 
 final asm = [
@@ -55,6 +54,8 @@ dependencies {
         boot it
         compileOnly it
     }
+
+    mixinCompileOnly 'net.minecraft.blank:client_mapped:1.19.1'
 
     compileOnly "cpw.mods:securejarhandler:$sshVersion"
     minecraftRuntime "cpw.mods:modlauncher:$mmlVersion"
@@ -89,6 +90,7 @@ tasks.create('downloadMcClient', DownloadMCTask) {
 tasks.create('remapMcClient', RemapJarTask) {
     group = 'minecraft'
     from(downloadMcClient)
+    output.set(project.file('run/client_mapped-1.19.1.jar'))
 }
 
 tasks.create('downloadMcServer', DownloadMCTask) {
@@ -148,7 +150,7 @@ final var configureRunTask = { JavaExec it, String type ->
 tasks.create('runClient', JavaExec) {
     setWorkingDir(project.file('run/client'))
     jvmArgs(
-            "-Dbrassloader.mclocation=${project.file('run/client_mapped.jar')}"
+            "-Dbrassloader.mclocation=${project.file('run/client_mapped-1.19.1.jar')}"
     )
     args(
             '--launchTarget', 'brass:mcclient',
