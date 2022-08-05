@@ -10,6 +10,6 @@ public class MinecraftMixin {
     @Inject(at = @At("HEAD"), method = "main")
     private static void brassloader$main(String[] args, CallbackInfo ci) {
         System.out.println("Hello world!");
-        System.exit(0);
+        // System.exit(0);
     }
 }
