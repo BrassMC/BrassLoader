@@ -25,16 +25,20 @@ minecraft {
 }
 
 sourceSets {
+    boot
     mixin
 }
 
 configurations {
     boot
+    bootImplementation.extendsFrom(boot)
 
     minecraftRuntime
     minecraftClientRuntime.extendsFrom(minecraftRuntime)
     minecraftServerRuntime.extendsFrom(minecraftRuntime)
-    mixinImplementation.extendsFrom minecraftClientRuntime
+    bootImplementation.extendsFrom(minecraftRuntime)
+    bootImplementation.extendsFrom(minecraftClientRuntime)
+    mixinImplementation.extendsFrom(minecraftClientRuntime)
 }
 
 final asm = [
@@ -52,19 +56,23 @@ dependencies {
 
     asm.each {
         boot it
-        compileOnly it
+        bootCompileOnly it
     }
 
     mixinCompileOnly 'net.minecraft.blank:client_mapped:1.19.1'
+    compileOnly 'net.minecraft.blank:client_mapped:1.19.1'
 
-    compileOnly "cpw.mods:securejarhandler:$sshVersion"
+    bootCompileOnly "cpw.mods:securejarhandler:$sshVersion"
     minecraftRuntime "cpw.mods:modlauncher:$mmlVersion"
     minecraftRuntime "org.spongepowered:mixin:$mixinVersion"
 
-    compileOnly group:'com.google.auto.service', name:'auto-service', version:'1.0.1'
-    annotationProcessor group:'com.google.auto.service', name:'auto-service', version:'1.0.1'
+    bootCompileOnly group:'com.google.auto.service', name:'auto-service', version:'1.0.1'
+    bootAnnotationProcessor group:'com.google.auto.service', name:'auto-service', version:'1.0.1'
+
+    compileOnly sourceSets.boot.output
 
     mixinImplementation sourceSets.main.output
+    mixinImplementation sourceSets.boot.output
 }
 
 processMixinResources {
@@ -106,20 +114,33 @@ tasks.create('remapMcServer', RemapJarTask) {
 jar {
     from sourceSets.mixin.output
     manifest.attributes([
-            'Automatic-Module-Name': 'io.github.brassmc.brassloader'
+            'Automatic-Module-Name': 'io.github.brassmc.brassloader',
     ])
 }
 
-final Function<String, java.nio.file.Path> legacyCpPath = (String type) -> project.file("$buildDir/resources/main/mc_cp_${type}.txt").toPath().toAbsolutePath()
+tasks.create('fatJar', Jar) {
+    it.from sourceSets.boot.output
+    it.dependsOn(jar)
+    classifier 'fat'
+    it.from(jar.archiveFile.get().asFile) {
+        rename(inTxt -> 'brass.jar')
+        into 'META-INF/jars'
+    }
+    manifest.attributes([
+            'Automatic-Module-Name': 'io.github.brassmc.brassloader.boot'
+    ])
+}
 
-processResources {
+final Function<String, java.nio.file.Path> legacyCpPath = (String type) -> project.file("$buildDir/resources/boot/mc_cp_${type}.txt").toPath().toAbsolutePath()
+
+processBootResources {
     doLast {
         final configurationResolver = { String type ->
             final lines = configurations."minecraft${type.capitalize()}Runtime".resolve().stream()
                     .map { it.toPath().toAbsolutePath().toString() }
                     .toList()
             final outPath = legacyCpPath.apply(type)
-            lines.add(jar.archiveFile.get().asFile.toString())
+            lines.add(fatJar.archiveFile.get().asFile.toString())
             Files.createDirectories(outPath.parent)
             Files.write(outPath, lines)
         }
@@ -131,7 +152,7 @@ processResources {
 //noinspection GroovyAssignabilityCheck
 final var configureRunTask = { JavaExec it, String type ->
     println "Using Java version ${it.getJavaVersion()} for $type configuration"
-    it.dependsOn('jar')
+    it.dependsOn('fatJar')
     it.getMainClass().set('cpw.mods.bootstraplauncher.BootstrapLauncher')
     final sshModule = 'cpw.mods.securejarhandler'
     it.jvmArgs(

@@ -1,4 +1,4 @@
-package io.github.brassmc.brassloader.mods;
+package io.github.brassmc.brassloader.boot.mods;
 
 import java.nio.file.Path;
 

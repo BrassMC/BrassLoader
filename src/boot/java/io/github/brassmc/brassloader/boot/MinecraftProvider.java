@@ -1,4 +1,4 @@
-package io.github.brassmc.brassloader;
+package io.github.brassmc.brassloader.boot;
 
 import com.google.auto.service.AutoService;
 import cpw.mods.jarhandling.SecureJar;
@@ -6,12 +6,14 @@ import cpw.mods.modlauncher.api.IEnvironment;
 import cpw.mods.modlauncher.api.IModuleLayerManager;
 import cpw.mods.modlauncher.api.ITransformationService;
 import cpw.mods.modlauncher.api.ITransformer;
-import io.github.brassmc.brassloader.util.DelegatingModuleData;
-import io.github.brassmc.brassloader.util.DelegatingSecureJar;
+import io.github.brassmc.brassloader.boot.util.DelegatingModuleData;
+import io.github.brassmc.brassloader.boot.util.DelegatingSecureJar;
 
 import javax.annotation.Nonnull;
 import java.lang.module.ModuleDescriptor;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 
@@ -21,6 +23,15 @@ import java.util.Set;
 @AutoService(ITransformationService.class)
 public class MinecraftProvider implements ITransformationService {
     public static final String MC_LOCATION_PROP = "brassloader.mclocation";
+    private static final Path OWN_PATH;
+
+    static {
+        try {
+            OWN_PATH = Paths.get(MinecraftProvider.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @Nonnull
     @Override
@@ -66,8 +77,9 @@ public class MinecraftProvider implements ITransformationService {
                 return "minecraft";
             }
         };
+        final var brass = SecureJar.from(OWN_PATH.resolve("META-INF/jars/brass.jar"));
         return List.of(new Resource(
-                IModuleLayerManager.Layer.GAME, List.of(delegateMc)
+                IModuleLayerManager.Layer.GAME, List.of(delegateMc, brass)
         ));
     }
 

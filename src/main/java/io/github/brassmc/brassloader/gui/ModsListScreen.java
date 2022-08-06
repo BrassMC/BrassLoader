@@ -1,6 +1,7 @@
 package io.github.brassmc.brassloader.gui;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -48,7 +49,7 @@ public class ModsListScreen extends Screen {
     public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTicks) {
         this.list.render(poseStack, mouseX, mouseY, partialTicks);
         this.searchBox.render(poseStack, mouseX, mouseY, partialTicks);
-        drawCenteredString(poseStack, this.font, this.title, this.width / 2, 8, 0xFFFFFF);
+        GuiComponent.drawCenteredString(poseStack, this.font, this.title, this.width / 2, 8, 0xFFFFFF);
         super.render(poseStack, mouseX, mouseY, partialTicks);
     }
 

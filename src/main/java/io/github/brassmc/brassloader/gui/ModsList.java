@@ -1,7 +1,7 @@
 package io.github.brassmc.brassloader.gui;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import io.github.brassmc.brassloader.mods.ModSummary;
+import io.github.brassmc.brassloader.boot.mods.ModSummary;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.network.chat.Component;

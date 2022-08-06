@@ -1,4 +1,4 @@
-package io.github.brassmc.brassloader.transform;
+package io.github.brassmc.brassloader.boot.transform;
 
 import com.google.auto.service.AutoService;
 import cpw.mods.modlauncher.api.NamedPath;
