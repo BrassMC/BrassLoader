@@ -156,7 +156,7 @@ final var configureRunTask = { JavaExec it, String type ->
     it.getMainClass().set('cpw.mods.bootstraplauncher.BootstrapLauncher')
     final sshModule = 'cpw.mods.securejarhandler'
     it.jvmArgs(
-            '--module-path', configurations.boot.resolve().stream().map { it.toString() }.toList().join(';'),
+            '--module-path', configurations.boot.resolve().stream().map { it.toString() }.toList().join(File.pathSeparator),
             "-DlegacyClassPath.file=${legacyCpPath.apply(type)}",
             '--add-modules', 'ALL-MODULE-PATH',
             '--add-opens', "java.base/java.util.jar=$sshModule",
