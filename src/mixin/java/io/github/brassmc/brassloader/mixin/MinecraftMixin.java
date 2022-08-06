@@ -1,15 +1,16 @@
 package io.github.brassmc.brassloader.mixin;
 
-import net.minecraft.client.main.Main;
+import com.mojang.authlib.minecraft.UserApiService;
+import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.main.GameConfig;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.Overwrite;
 
-@Mixin(Main.class)
+@Mixin(Minecraft.class)
 public class MinecraftMixin {
-    @Inject(at = @At("HEAD"), method = "main")
-    private static void brassloader$main(String[] args, CallbackInfo ci) {
-        System.out.println("BrassMC has been injected!");
+    @Overwrite
+    private UserApiService createUserApiService(YggdrasilAuthenticationService service, GameConfig cfg) {
+        return UserApiService.OFFLINE;
     }
 }
