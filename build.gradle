@@ -130,6 +130,7 @@ processResources {
 
 //noinspection GroovyAssignabilityCheck
 final var configureRunTask = { JavaExec it, String type ->
+    println "Using Java version ${it.getJavaVersion()} for $type configuration"
     it.dependsOn('jar')
     it.getMainClass().set('cpw.mods.bootstraplauncher.BootstrapLauncher')
     final sshModule = 'cpw.mods.securejarhandler'
