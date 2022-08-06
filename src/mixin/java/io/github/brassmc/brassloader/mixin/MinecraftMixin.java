@@ -10,7 +10,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MinecraftMixin {
     @Inject(at = @At("HEAD"), method = "main")
     private static void brassloader$main(String[] args, CallbackInfo ci) {
-        System.out.println("Hello world!");
-        // System.exit(0);
+        System.out.println("BrassMC has been injected!");
     }
 }
