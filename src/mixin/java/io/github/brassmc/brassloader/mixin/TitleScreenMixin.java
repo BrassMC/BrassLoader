@@ -33,7 +33,9 @@ public class TitleScreenMixin extends Screen {
         Button button = (Button) guiEventListener;
         addRenderableWidget(new Button(button.x, button.y, button.getWidth() / 2 - 2, button.getHeight(),
                 Component.translatable("brass.menu.mods"),
-                btn -> this.minecraft.setScreen(new ModsListScreen(this))));
+                btn -> {
+                    this.minecraft.setScreen(new ModsListScreen(this));
+                }));
         button.x += button.getWidth() / 2 + 2;
         button.setWidth(button.getWidth() / 2);
         return addRenderableWidget(button);

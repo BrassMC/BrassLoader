@@ -1,13 +1,15 @@
-package io.github.brassmc.brassloader.boot.mods;
+package io.github.brassmc.brassloader.util;
+
+import net.minecraft.resources.ResourceLocation;
 
 import java.nio.file.Path;
 
 public class ModSummary {
     private final String name;
-    private final Path icon;
+    private final ResourceLocation icon;
     private final String description;
 
-    public ModSummary(String name, Path icon, String description) {
+    public ModSummary(String name, ResourceLocation icon, String description) {
         this.name = name;
         this.icon = icon;
         this.description = description;
@@ -27,7 +29,7 @@ public class ModSummary {
         return this.name;
     }
 
-    public Path getIcon() {
+    public ResourceLocation getIcon() {
         return this.icon;
     }
 

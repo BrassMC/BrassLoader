@@ -5,9 +5,11 @@
   "client": [
     "MainMixin",
     "MinecraftMixin",
-    "TitleScreenMixin"
+    "TitleScreenMixin",
+    "AbstractSelectionListMixin"
   ],
   "mixins": [
+    "ItemsMixin",
     "access.PackRepositoryAccess"
   ],
   "minVersion": "${mixinVersion}",
