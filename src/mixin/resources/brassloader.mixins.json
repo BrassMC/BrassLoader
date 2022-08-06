@@ -7,6 +7,9 @@
     "MinecraftMixin",
     "TitleScreenMixin"
   ],
+  "mixins": [
+    "access.PackRepositoryAccess"
+  ],
   "minVersion": "${mixinVersion}",
   "injectors": {
     "defaultRequire": 1

@@ -23,11 +23,13 @@ import java.util.Set;
 @AutoService(ITransformationService.class)
 public class MinecraftProvider implements ITransformationService {
     public static final String MC_LOCATION_PROP = "brassloader.mclocation";
-    private static final Path OWN_PATH;
+    public static final Path OWN_PATH;
+    public static final SecureJar BRASS_JAR;
 
     static {
         try {
             OWN_PATH = Paths.get(MinecraftProvider.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            BRASS_JAR = SecureJar.from(OWN_PATH.resolve("META-INF/jars/brass.jar"));
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
@@ -77,9 +79,8 @@ public class MinecraftProvider implements ITransformationService {
                 return "minecraft";
             }
         };
-        final var brass = SecureJar.from(OWN_PATH.resolve("META-INF/jars/brass.jar"));
         return List.of(new Resource(
-                IModuleLayerManager.Layer.GAME, List.of(delegateMc, brass)
+                IModuleLayerManager.Layer.GAME, List.of(delegateMc, BRASS_JAR)
         ));
     }
 

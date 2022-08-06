@@ -63,6 +63,7 @@ dependencies {
     compileOnly 'net.minecraft.blank:client_mapped:1.19.1'
 
     bootCompileOnly "cpw.mods:securejarhandler:$sshVersion"
+    mixinCompileOnly "cpw.mods:securejarhandler:$sshVersion"
     minecraftRuntime "cpw.mods:modlauncher:$mmlVersion"
     minecraftRuntime "org.spongepowered:mixin:$mixinVersion"
 
@@ -162,7 +163,9 @@ final var configureRunTask = { JavaExec it, String type ->
             '--add-opens', "java.base/java.util.jar=$sshModule",
             '--add-opens', "java.base/java.lang.invoke=$sshModule",
             '--add-exports', "java.base/sun.security.util=$sshModule",
-            '--add-exports', 'jdk.naming.dns/com.sun.jndi.dns=java.naming'
+            '--add-exports', 'jdk.naming.dns/com.sun.jndi.dns=java.naming',
+
+            '-Dmixin.debug.verbose=true', '-Dmixin.debug.export=true'
     )
     it.group = 'minecraft'
 
