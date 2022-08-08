@@ -3,11 +3,14 @@ package io.github.brassmc.brassloader.gui;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-import io.github.brassmc.brassloader.util.ModSummary;
 import io.github.brassmc.brassloader.util.HoveredProvider;
+import io.github.brassmc.brassloader.util.ModSummary;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.components.ObjectSelectionList;
+import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -15,15 +18,12 @@ import net.minecraft.util.Mth;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
     private final ModsListScreen screen;
@@ -31,10 +31,12 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
     @Nullable
     private List<ModSummary> currentlyDisplayed;
     private CompletableFuture<List<ModSummary>> pending;
+    private FilterDirection filterDirection = FilterDirection.NONE;
+    private FilterType filterType = FilterType.NONE;
 
     private final List<ModSummary> items = new ArrayList<>();
 
-    public ModsList(ModsListScreen screen,  Minecraft minecraft, int width, int height, int top, int bottom, int left, int right, int itemHeight) {
+    public ModsList(ModsListScreen screen, Minecraft minecraft, int width, int height, int top, int bottom, int left, int right, int itemHeight) {
         super(minecraft, 0, 0, 0, 0, itemHeight);
         this.width = width;
         this.height = height;
@@ -48,13 +50,83 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
 
         this.pending = loadMods();
         handleNewMods(pollMods());
+        this.pending = null;
     }
 
+    public FilterDirection getFilterDirection() {
+        return this.filterDirection;
+    }
 
+    public void switchDirection(Button button) {
+        if(this.filterType != FilterType.NONE) {
+            this.filterDirection = getFilterDirection().next(this.filterType != FilterType.NONE);
+            if (this.filterType == FilterType.ALPHABETICAL) {
+                this.screen.filterButton.setMessage(this.filterDirection == FilterDirection.ASCENDING ? Component.literal("A-Z") : Component.literal("Z-A"));
+            }
+
+            filterUsingType();
+        } else {
+            this.filterDirection = FilterDirection.NONE;
+        }
+    }
+
+    public void switchFilter(Button button) {
+        this.filterType = getFilterType().next();
+        button.setMessage(getFilterType().getName());
+
+        if(this.filterType != FilterType.NONE) {
+            if (this.filterDirection == FilterDirection.NONE) {
+                switchDirection(this.screen.direction);
+            } else {
+                filterUsingType();
+            }
+
+            if (this.filterType == FilterType.ALPHABETICAL) {
+                button.setMessage(this.filterDirection == FilterDirection.ASCENDING ? Component.literal("A-Z") : Component.literal("Z-A"));
+            }
+
+            this.screen.direction.active = true;
+        } else {
+            this.filterDirection = FilterDirection.NONE;
+            this.screen.direction.setMessage(getFilterDirection().asLiteral());
+            this.screen.direction.active = false;
+
+            clearEntries();
+            this.currentlyDisplayed = new ArrayList<>();
+            this.items.forEach(item -> {
+                addEntry(new ModListEntry(this, item));
+                this.currentlyDisplayed.add(item);
+            });
+            notifyListUpdated();
+        }
+    }
+
+    private void filterUsingType() {
+        clearEntries();
+
+        if(this.filterDirection == FilterDirection.ASCENDING) {
+            this.currentlyDisplayed = this.filterType.ascendingSorter.apply(this.currentlyDisplayed);
+        } else {
+            this.currentlyDisplayed = this.filterType.descendingSorter.apply(this.currentlyDisplayed);
+        }
+
+        this.currentlyDisplayed.forEach(modSummary -> addEntry(new ModListEntry(this, modSummary)));
+
+        notifyListUpdated();
+    }
+
+    public FilterType getFilterType() {
+        return this.filterType;
+    }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int keyCode) {
-        setSelected((ModListEntry) getChildAt(mouseX, mouseY).orElse(null));
+        Optional<GuiEventListener> clicked = getChildAt(mouseX, mouseY);
+        if(clicked.isPresent() && clicked.get() instanceof ModListEntry entry) {
+            setSelected(entry);
+            return super.mouseClicked(mouseX, mouseY, keyCode);
+        }
+
         return super.mouseClicked(mouseX, mouseY, keyCode);
     }
 
@@ -70,7 +142,7 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
 
     @Override
     protected int getRowTop(int index) {
-        return this.y0 + (index * (this.itemHeight)) + 5;
+        return this.y0 - (int)getScrollAmount() + (index * (this.itemHeight)) + 5;
     }
 
     @Override
@@ -82,7 +154,7 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
     @Override
     public void render(@NotNull PoseStack poseStack, int mouseX, int mouseY, float partialTicks) {
         List<ModSummary> modSummaries = pollMods();
-        if(modSummaries != this.currentlyDisplayed) {
+        if(modSummaries != this.currentlyDisplayed && modSummaries != null) {
             handleNewMods(currentlyDisplayed);
         }
 
@@ -118,17 +190,43 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
         }
     }
 
+    @Override
+    protected boolean isFocused() {
+        return this.screen.getFocused() == this;
+    }
+
     protected void renderItem(@NotNull PoseStack stack, int mouseX, int mouseY, float partialTicks, int index, int top, int left, int width, int height) {
         ModListEntry entry = getEntry(index);
         if (isSelectedItem(index)) {
             renderSelection(stack, top, left, width, height);
         }
+
         entry.render(stack, index, top, left, width, height, mouseX, mouseY, Objects.equals(getHovered(), entry), partialTicks);
     }
 
+    @Override
+    protected boolean isSelectedItem(int index) {
+        return Objects.equals(getSelected(), getEntry(index));
+    }
+
+    @Override
+    public @NotNull Optional<GuiEventListener> getChildAt(double mouseX, double mouseY) {
+        if(mouseX < x0 || mouseX > x1 || mouseY < y0 || mouseY > y1)
+            return super.getChildAt(mouseX, mouseY);
+
+        for(int index = 0; index < getItemCount(); index++) {
+            ModListEntry entry = getEntry(index);
+            if(mouseY > getRowTop(index) && mouseY < getRowTop(index) + this.itemHeight) {
+                return Optional.of(entry);
+            }
+        }
+
+        return super.getChildAt(mouseX, mouseY);
+    }
+
     protected void renderSelection(@NotNull PoseStack stack, int top, int left, int width, int height) {
-        fill(stack, left - 1, top - 1, left + width + 1, top + height + 1, isFocused() ? 0 : 0xFF808080);
-        fill(stack, left, top, left + width, top + height, 0xFF121212);
+        fill(stack, left, top - 1, left + width, top + height + 1, 0xFF808080);
+        fill(stack, left + 1, top, left + width - 1, top + height, 0xFF121212);
     }
 
     private void renderBackground(Tesselator tesselator, BufferBuilder buffer) {
@@ -217,14 +315,14 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
 
     @Override
     protected int getScrollbarPosition() {
-        return this.width - 6;
+        return this.width - this.x0;
     }
 
     @Nullable
     private List<ModSummary> pollMods() {
         try {
             return this.pending.getNow(null);
-        } catch (CancellationException | CompletionException exception) {
+        } catch (CancellationException | CompletionException | NullPointerException exception) {
             return null;
         }
     }
@@ -264,6 +362,8 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
         if(this.currentlyDisplayed != null && !str.equals(this.filter)) {
             this.fillMods(str);
         }
+
+        filterUsingType();
 
         this.filter = str;
     }
@@ -314,10 +414,9 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
 
         @Override
         public void render(@NotNull PoseStack poseStack, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTicks) {
-            // TODO: Draw Icon
             RenderSystem.setShader(GameRenderer::getPositionTexShader);
             RenderSystem.setShaderTexture(0, this.summary.getIcon());
-            this.screen.blit(poseStack, left + height / 2 - 12, top + height / 2 - 12, 0, 0, 24, 24, 24, 24);
+            blit(poseStack, left + height / 2 - 12, top + height / 2 - 12, 0, 0, 24, 24, 24, 24);
 
             this.minecraft.font.draw(
                     poseStack,
@@ -329,6 +428,89 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
         }
 
         public void close() {
+        }
+    }
+
+    public enum FilterDirection {
+        ASCENDING("▲"),
+        NONE("-"),
+        DESCENDING("▼");
+
+        private final String symbol;
+
+        FilterDirection(String symbol) {
+            this.symbol = symbol;
+        }
+
+        public String getSymbol() {
+            return this.symbol;
+        }
+
+        public Component asLiteral() {
+            return Component.literal(getSymbol());
+        }
+
+        public FilterDirection next() {
+            int ordinal = ordinal();
+            if(ordinal + 1 < values().length)
+                return values()[ordinal + 1];
+            return values()[0];
+        }
+
+        public FilterDirection next(boolean skipNone) {
+            if(!skipNone) {
+                return next();
+            }
+
+            int ordinal = ordinal();
+
+            if(ordinal + 1 == FilterDirection.NONE.ordinal()) {
+                ordinal++;
+            }
+
+            if(ordinal + 1 < values().length)
+                return values()[ordinal + 1];
+            return values()[0];
+        }
+    }
+
+    public enum FilterType {
+        ALPHABETICAL("brassloader.modsList.filter.alphabetical",
+                mods -> mods.stream().sorted(Comparator.comparing(ModSummary::getName)).toList(),
+                mods -> mods.stream().sorted(Comparator.comparing(ModSummary::getName).reversed()).toList()
+        ),
+        NONE("brassloader.modsList.filter.none", mods -> mods, mods -> mods);
+
+        private final Component name;
+        private final UnaryOperator<List<ModSummary>> ascendingSorter, descendingSorter;
+
+        FilterType(Component name, UnaryOperator<List<ModSummary>> ascendingSorter, UnaryOperator<List<ModSummary>> descendingSorter) {
+            this.name = name;
+            this.ascendingSorter = ascendingSorter;
+            this.descendingSorter = descendingSorter;
+        }
+
+        FilterType(String name, UnaryOperator<List<ModSummary>> ascendingSorter, UnaryOperator<List<ModSummary>> descendingSorter) {
+            this(Component.translatable(name), ascendingSorter, descendingSorter);
+        }
+
+        public Component getName() {
+            return this.name;
+        }
+
+        public List<ModSummary> getAscendingSorter(List<ModSummary> modSummaries) {
+            return this.ascendingSorter.apply(modSummaries);
+        }
+
+        public List<ModSummary> getDescendingSorter(List<ModSummary> modSummaries) {
+            return this.descendingSorter.apply(modSummaries);
+        }
+
+        public FilterType next() {
+            int ordinal = ordinal();
+            if(ordinal + 1 < values().length)
+                return values()[ordinal + 1];
+            return values()[0];
         }
     }
 }

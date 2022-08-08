@@ -4,16 +4,23 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
+import io.github.brassmc.brassloader.gui.ModsList.FilterDirection;
+import io.github.brassmc.brassloader.gui.ModsList.FilterType;
+
+import java.util.Objects;
 
 public class ModsListScreen extends Screen {
+    private static final ResourceLocation FILTER_DIRECTION = new ResourceLocation("brassloader", "textures/gui/filter_direction.png");
     protected final Screen lastScreen;
     protected EditBox searchBox;
     protected ModsList list;
-    protected Button azFilter;
-    protected Button zaFilter;
+    protected Button filterButton;
+    protected Button direction;
 
     public ModsListScreen(Screen lastScreen) {
         super(Component.translatable("brassloader.modsList.title"));
@@ -22,14 +29,7 @@ public class ModsListScreen extends Screen {
 
     @Override
     protected void init() {
-        this.minecraft.keyboardHandler.setSendRepeatsToGui(true);
-        this.searchBox = new EditBox(this.font, (this.width / 4) - 15, this.height - 25, 100, 20, this.searchBox,
-                Component.translatable("brassloader.modsList.search"));
-        this.searchBox.setResponder(str -> {
-            this.list.updateFilter(str);
-            this.searchBox.setSuggestion(str.isBlank() ? "e.g. Brass API": "");
-        });
-        this.searchBox.setSuggestion("e.g. Brass API");
+        Objects.requireNonNull(this.minecraft).keyboardHandler.setSendRepeatsToGui(true);
 
         this.list = new ModsList(
                 this,
@@ -43,20 +43,28 @@ public class ModsListScreen extends Screen {
                 32
         );
 
-        this.azFilter = new Button(25, this.height - 25, 25, 20, Component.literal("A-Z"),btn -> {});
-        this.zaFilter = new Button(55, this.height - 25, 25, 20, Component.literal("Z-A"),btn -> {});
+        this.searchBox = new EditBox(this.font, this.width / 2 - 120, this.height - 25, 100, 20, this.searchBox,
+                Component.translatable("brassloader.modsList.search"));
+        this.searchBox.setResponder(str -> {
+            this.list.updateFilter(str);
+            this.searchBox.setSuggestion(str.isBlank() ? "e.g. Brass API": "");
+        });
+        this.searchBox.setSuggestion("e.g. Brass API");
+
+        this.filterButton = new Button(25, this.height - 25, this.width / 2 - 170, 20, FilterType.NONE.getName(), this.list::switchFilter);
+        this.direction = new DirectionButton(this.width / 2 - 145, this.height - 25, 20, 20, this.list::switchDirection, this.list);
 
         addRenderableWidget(this.list);
         addRenderableWidget(this.searchBox);
-        addRenderableWidget(this.azFilter);
-        addRenderableWidget(this.zaFilter);
+        addRenderableWidget(this.filterButton);
+        addRenderableWidget(this.direction);
 
         setInitialFocus(this.searchBox);
     }
 
     @Override
-    public boolean mouseClicked(double $$0, double $$1, int $$2) {
-        return super.mouseClicked($$0, $$1, $$2);
+    public boolean mouseClicked(double mouseX, double mouseY, int modifiers) {
+        return super.mouseClicked(mouseX, mouseY, modifiers);
     }
 
     @Override
@@ -66,7 +74,7 @@ public class ModsListScreen extends Screen {
 
     @Override
     public void onClose() {
-        this.minecraft.setScreen(this.lastScreen);
+        Objects.requireNonNull(this.minecraft).setScreen(this.lastScreen);
     }
 
     @Override
