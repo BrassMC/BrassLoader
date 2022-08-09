@@ -3,11 +3,14 @@
   "package": "io.github.brassmc.brassloader.mixin",
   "compatibilityLevel": "JAVA_17",
   "client": [
+    "ClientBrandRetrieverMixin",
+    "DebugScreenOverlayMixin",
     "MainMixin",
     "MinecraftMixin",
     "TitleScreenMixin"
   ],
   "mixins": [
+    "MinecraftServerMixin",
     "access.PackRepositoryAccess"
   ],
   "minVersion": "${mixinVersion}",
