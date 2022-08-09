@@ -2,6 +2,7 @@ import io.github.brassmc.bradle.task.DownloadMCTask
 import io.github.brassmc.bradle.task.RemapJarTask
 import java.nio.file.Files
 import java.util.function.Function
+import io.github.brassmc.bradle.util.gson.Library.OS
 
 plugins {
     id 'java'
@@ -165,8 +166,8 @@ final var configureRunTask = { JavaExec it, String type ->
             '--add-exports', "java.base/sun.security.util=$sshModule",
             '--add-exports', 'jdk.naming.dns/com.sun.jndi.dns=java.naming',
             '-Dmixin.debug.verbose=true', '-Dmixin.debug.export=true',
-            '-XstartOnFirstThread'
     )
+    if (OS.current in [OS.LINUX, OS.OSX]) it.jvmArgs('-XstartOnFirstThread')
     it.group = 'minecraft'
 
     Files.createDirectories(it.workingDir.toPath())
