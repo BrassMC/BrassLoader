@@ -11,6 +11,7 @@
   ],
   "mixins": [
     "MinecraftServerMixin",
+    "PauseScreenMixin",
     "access.PackRepositoryAccess"
   ],
   "minVersion": "${mixinVersion}",
