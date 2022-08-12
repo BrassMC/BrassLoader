@@ -61,6 +61,6 @@ public abstract class MinecraftMixin {
 
     @Inject(method = "createTitle", at = @At("HEAD"), cancellable = true)
     private void brassloader$changeWindowTitle(CallbackInfoReturnable<String> ci) {
-        ci.setReturnValue("Minecraft Brass" + SharedConstants.getCurrentVersion().getName() + (server != null && server.isRemote()) ? "Multiplayer" : "Singleplayer");
+        ci.setReturnValue("Minecraft Brass" + SharedConstants.getCurrentVersion().getName() + " " + (server != null && server.isRemote()) ? "Multiplayer" : "Singleplayer");
     } 
 }
