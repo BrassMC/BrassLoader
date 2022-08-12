@@ -22,7 +22,8 @@ import java.util.List;
 import java.util.Set;
 
 @Mixin(Minecraft.class)
-public class MinecraftMixin {
+public abstract class MinecraftMixin {
+
     @Overwrite
     private UserApiService createUserApiService(YggdrasilAuthenticationService service, GameConfig cfg) {
         return UserApiService.OFFLINE;
@@ -55,4 +56,9 @@ public class MinecraftMixin {
         access.setSources(Set.copyOf(sources));
         packRepository.reload();
     }
+
+    @Inject(method = "createTitle", at = @At("HEAD"), cancellable = true)
+    private void brassloader$changeWindowTitle(CallbackInfoReturnable<String> ci) {
+        ci.setReturnValue("Minecraft Brass" + SharedConstants.getCurrentVersion().getName());
+    } 
 }
