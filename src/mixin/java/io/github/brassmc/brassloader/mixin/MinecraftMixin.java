@@ -23,6 +23,8 @@ import java.util.Set;
 
 @Mixin(Minecraft.class)
 public abstract class MinecraftMixin {
+    @Shadow
+    private IntegratedServer server;
 
     @Overwrite
     private UserApiService createUserApiService(YggdrasilAuthenticationService service, GameConfig cfg) {
@@ -59,6 +61,6 @@ public abstract class MinecraftMixin {
 
     @Inject(method = "createTitle", at = @At("HEAD"), cancellable = true)
     private void brassloader$changeWindowTitle(CallbackInfoReturnable<String> ci) {
-        ci.setReturnValue("Minecraft Brass" + SharedConstants.getCurrentVersion().getName());
+        ci.setReturnValue("Minecraft Brass" + SharedConstants.getCurrentVersion().getName() + (server != null && server.isRemote()) ? "Multiplayer" : "Singleplayer");
     } 
 }
