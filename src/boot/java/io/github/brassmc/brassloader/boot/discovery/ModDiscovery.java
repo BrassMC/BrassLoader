@@ -57,11 +57,8 @@ public class ModDiscovery implements ITransformationService {
                         mods.add(secureJar);
 
                         Path metadata = secureJar.getPath("mod.hjson");
-                        InputStream stream;
-                        if (Files.exists(metadata))
-                            stream = Files.newInputStream(metadata);
-                        else
-                            return FileVisitResult.CONTINUE;
+                        if (Files.notExists(metadata)) return FileVisitResult.CONTINUE;
+                        final var data = Files.readString(metadata);
 
                         // Parse metadata as hjson
                         JsonObject jsonObject = JsonValue.readHjson(new String(stream.readAllBytes())).asObject();
