@@ -64,7 +64,7 @@ public class ModDiscovery implements ITransformationService {
                         JsonObject jsonObject = JsonValue.readHjson(new String(stream.readAllBytes())).asObject();
 
                         // Get and validate the mandatory mod details
-                        String modid = getString(jsonObject, "modid", file);
+                        String modid = getString(jsonObject, "modId", file);
                         lengthCheck("modid", modid, file, 3, 20);
                         if(!isValidModid(modid))
                             throw new InvalidModidException("Provided modid(" + modid + ") in mod(" + file + ") must match the expression: a-z0-9/._-");
