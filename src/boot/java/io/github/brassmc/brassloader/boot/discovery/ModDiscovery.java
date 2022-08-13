@@ -52,6 +52,7 @@ public class ModDiscovery implements ITransformationService {
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                     try {
                         // Read jar
+                        if (!file.toString().endsWith(".jar")) return FileVisitResult.CONTINUE;
                         SecureJar secureJar = SecureJar.from(file);
                         mods.add(secureJar);
 
