@@ -53,6 +53,7 @@ public class ModsListScreen extends Screen {
 
         this.filterButton = new Button(25, this.height - 25, this.width / 2 - 170, 20, FilterType.NONE.getName(), this.list::switchFilter);
         this.direction = new DirectionButton(this.width / 2 - 145, this.height - 25, 20, 20, this.list::switchDirection, this.list);
+        this.direction.active = false;
 
         addRenderableWidget(this.list);
         addRenderableWidget(this.searchBox);
@@ -85,6 +86,7 @@ public class ModsListScreen extends Screen {
     @Override
     public void render(@NotNull PoseStack poseStack, int mouseX, int mouseY, float partialTicks) {
         renderDirtBackground(0);
+        fill(poseStack, width / 2 + 20, 10, width - 10, height - 10, 0xFF8B8B8B);
         super.render(poseStack, mouseX, mouseY, partialTicks);
         GuiComponent.drawCenteredString(poseStack, this.font, this.title, this.width / 4, 8, 0xFFFFFF);
         GuiComponent.drawString(poseStack, this.font, Component.translatable("brassloader.modsList.filter").append(":"), 25, this.height - 40 + this.font.lineHeight / 2, 0xFFFFFF);
