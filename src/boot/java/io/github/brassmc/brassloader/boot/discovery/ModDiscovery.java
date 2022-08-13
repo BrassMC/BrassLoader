@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
 public class ModDiscovery implements ITransformationService {
     public static final List<ModContainer> MODS = new ArrayList<>();
 
-    private static final Pattern MODID_PATTERN = Pattern.compile("([a-z0-9/._-])");
+    private static final Pattern MODID_PATTERN = Pattern.compile("a-z0-9/._-");
     private static final Path MODS_FOLDER = Path.of("mods");
 
     @Override
@@ -46,12 +46,16 @@ public class ModDiscovery implements ITransformationService {
     @Override
     public List<Resource> completeScan(IModuleLayerManager layerManager) {
         try {
+            final List<SecureJar> mods = new ArrayList<>();
+
             Files.walkFileTree(MODS_FOLDER, new SimpleFileVisitor<>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                     try {
                         // Read jar
                         SecureJar secureJar = SecureJar.from(file);
+                        mods.add(secureJar);
+
                         Path metadata = secureJar.getPath("mod.hjson");
                         InputStream stream;
                         if (Files.exists(metadata))
@@ -65,7 +69,7 @@ public class ModDiscovery implements ITransformationService {
                         // Get and validate the mandatory mod details
                         String modid = getString(jsonObject, "modid", file);
                         lengthCheck("modid", modid, file, 3, 20);
-                        if(!MODID_PATTERN.matcher(modid).matches())
+                        if(!isValidModid(modid))
                             throw new InvalidModidException("Provided modid(" + modid + ") in mod(" + file + ") must match the expression: " + MODID_PATTERN.pattern());
 
                         String name = getString(jsonObject, "name", file);
@@ -158,22 +162,26 @@ public class ModDiscovery implements ITransformationService {
 
                         // Close resources
                         stream.close();
+
+                        return FileVisitResult.CONTINUE;
                     } catch (IOException | ParseException exception) {
                         exception.printStackTrace();
                     }
+
                     return super.visitFile(file, attrs);
                 }
             });
+
+            return mods.stream().map(mod -> new Resource(IModuleLayerManager.Layer.GAME, List.of(mod))).toList();
         } catch (IOException exception) {
             throw new RuntimeException(exception);
         }
-        return ITransformationService.super.completeScan(layerManager);
     }
 
     private static String[] getArrayOrString(JsonObject object, String name, Path modLoc, boolean shouldThrowIfMissing) {
         JsonValue itemsJson = object.get(name);
         String[] items;
-        if(itemsJson.isArray()) {
+        if(itemsJson != null && itemsJson.isArray()) {
             String[] arr = itemsJson.asArray().values().stream().map(JsonValue::asString).toArray(String[]::new);
             for (int i = 0; i < arr.length; i++) {
                 String author = arr[i];
@@ -181,7 +189,7 @@ public class ModDiscovery implements ITransformationService {
             }
 
             items = arr;
-        } else if(itemsJson.isString()) {
+        } else if(itemsJson != null && itemsJson.isString()) {
             items = new String[] { itemsJson.asString() };
         } else
             items = new String[0];
@@ -207,7 +215,7 @@ public class ModDiscovery implements ITransformationService {
     }
 
     private static String getString(JsonObject object, String name, String defaultValue, Path path) throws MetadataParseException {
-        String value = object.getString("license", defaultValue);
+        String value = object.getString(name, defaultValue);
         if(value != null && value.isBlank()) {
             throw new MetadataParseException(name + " was not provided for mod: " + path);
         }
@@ -224,6 +232,20 @@ public class ModDiscovery implements ITransformationService {
             throw new MetadataParseException(fieldName + " url is invalid in mod: " + path);
 
         return url;
+    }
+
+    private static boolean isValidModid(String modid) {
+        for(int index = 0; index < modid.length(); ++index) {
+            if (!modidAllows(modid.charAt(index))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static boolean modidAllows(char c) {
+        return c == '_' || c == '-' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '.';
     }
 
     @Override

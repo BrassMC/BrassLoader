@@ -2,6 +2,7 @@ package io.github.brassmc.brassloader.mixin;
 
 import io.github.brassmc.brassloader.boot.discovery.InvalidEntrypointException;
 import io.github.brassmc.brassloader.boot.discovery.ModDiscovery;
+import io.github.brassmc.brassloader.boot.mods.ModContainer;
 import net.minecraft.server.Bootstrap;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -10,6 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 
 @Mixin(Bootstrap.class)
 public class BootstrapMixin {
@@ -21,6 +23,7 @@ public class BootstrapMixin {
             method = "bootStrap"
     )
     private static void init(CallbackInfo callback) {
+        System.out.println("Found mods: [" + String.join(", ", ModDiscovery.MODS.stream().map(ModContainer::modid).toArray(String[]::new)) + "]");
         ModDiscovery.MODS.forEach(modContainer -> {
             String entrypoint = modContainer.entrypoint();
             try {
@@ -39,6 +42,7 @@ public class BootstrapMixin {
             } catch (NoSuchMethodException exception) {
                 throw new InvalidEntrypointException("Entrypoint in mod [" + modContainer.modid() + "] does not contain a no-args constructor!");
             }
+            System.out.println("Loaded mod: " + modContainer.modid());
         });
     }
 }
