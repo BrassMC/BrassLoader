@@ -242,7 +242,7 @@ public class ModDiscovery implements ITransformationService {
     }
 
     private static boolean modidAllows(char c) {
-        return c == '_' || c == '-' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '.';
+        return c == '_' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '.';
     }
 
     @Override
