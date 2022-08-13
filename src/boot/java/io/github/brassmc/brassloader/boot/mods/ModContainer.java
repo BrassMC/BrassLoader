@@ -7,12 +7,11 @@ import java.nio.file.Path;
 
 public record ModContainer(@NotNull String modid, @NotNull String name, @NotNull String version,
                            @NotNull String description, @NotNull String entrypoint, @NotNull String license, @NotNull People people,
-                           @NotNull Path icon, boolean usesMixins, @NotNull Contact contact) {
+                           @NotNull Path icon, @NotNull Contact contact) {
     public static class Builder {
         private final String modid;
         private String name, version, description, entrypoint, license;
         private Path icon;
-        private boolean usesMixins;
         private Contact contact;
         private People people;
 
@@ -50,11 +49,6 @@ public record ModContainer(@NotNull String modid, @NotNull String name, @NotNull
             return this;
         }
 
-        public Builder usesMixins() {
-            this.usesMixins = true;
-            return this;
-        }
-
         public Builder contact(Contact contact) {
             this.contact = contact;
             return this;
@@ -74,7 +68,7 @@ public record ModContainer(@NotNull String modid, @NotNull String name, @NotNull
         }
 
         public ModContainer build() {
-            return new ModContainer(modid, name, version, description, entrypoint, license, people, icon, usesMixins, contact);
+            return new ModContainer(modid, name, version, description, entrypoint, license, people, icon, contact);
         }
     }
 

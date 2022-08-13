@@ -14,7 +14,6 @@ import org.hjson.ParseException;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 @AutoService(ITransformationService.class)
 public class ModDiscovery implements ITransformationService {
@@ -33,21 +31,11 @@ public class ModDiscovery implements ITransformationService {
     private static final Path MODS_FOLDER = Path.of("mods");
 
     @Override
-    public @NotNull String name() {
-        return "brass:moddiscovery";
-    }
-
-    @Override
-    public void initialize(IEnvironment environment) {
-
-    }
-
-    @Override
     public List<Resource> completeScan(IModuleLayerManager layerManager) {
         try {
             final List<SecureJar> mods = new ArrayList<>();
 
-            Files.walkFileTree(MODS_FOLDER, new SimpleFileVisitor<>() {
+            Files.walkFileTree(MODS_FOLDER, Set.of(), 1, new SimpleFileVisitor<>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                     try {
@@ -61,27 +49,18 @@ public class ModDiscovery implements ITransformationService {
                         final var data = Files.readString(metadata);
 
                         // Parse metadata as hjson
-                        JsonObject jsonObject = JsonValue.readHjson(new String(stream.readAllBytes())).asObject();
+                        JsonObject jsonObject = JsonValue.readHjson(data).asObject();
 
                         // Get and validate the mandatory mod details
-                        String modid = getString(jsonObject, "modId", file);
-                        lengthCheck("modId", modid, file, 3, 20);
-                        if(!isValidModid(modid))
+                        String modid = MetadataUtils.getStringWithLength(jsonObject, "modId", file, 3, 20);
+                        if(!MetadataUtils.isValidModid(modid))
                             throw new InvalidModidException("Provided modid(" + modid + ") in mod(" + file + ") must match the expression: a-z0-9/._-");
 
-                        String name = getString(jsonObject, "name", file);
-                        lengthCheck("name", name, file, 4, 32);
-
-                        String version = getString(jsonObject, "version", file);
-                        lengthCheck("version", version, file, 1, 64);
-
-                        String description = getString(jsonObject, "description", file);
-                        lengthCheck("description", description, file, 4, 2056);
-
-                        String entrypoint = getString(jsonObject, "entrypoint", file);
-
-                        String license = getString(jsonObject, "license", file);
-                        lengthCheck("license", license, file, 3, 64);
+                        String name = MetadataUtils.getStringWithLength(jsonObject, "name", file, 4, 32);
+                        String version = MetadataUtils.getStringWithLength(jsonObject, "version", file, 1, 64);
+                        String description = MetadataUtils.getStringWithLength(jsonObject, "description", file, 4, 2056);
+                        String entrypoint = MetadataUtils.getString(jsonObject, "entrypoint", file);
+                        String license = MetadataUtils.getStringWithLength(jsonObject, "license", file, 3, 64);
 
                         // Get and validate the people object
                         JsonValue peopleValue = jsonObject.get("people");
@@ -90,19 +69,16 @@ public class ModDiscovery implements ITransformationService {
 
                         JsonObject peopleObj = peopleValue.asObject();
 
-                        String[] developers = getArrayOrString(peopleObj, "developers", file, true);
-                        String[] artists = getArrayOrString(peopleObj, "artists", file);
-                        String[] modellers = getArrayOrString(peopleObj, "modellers", file);
-                        String[] animators = getArrayOrString(peopleObj, "animators", file);
-                        String[] audioEngineers = getArrayOrString(peopleObj, "audioEngineers", file);
-                        String[] additionalCredits = getArrayOrString(peopleObj, "additionalCredits", file);
+                        String[] developers = MetadataUtils.getArrayOrString(peopleObj, "developers", file, true);
+                        String[] artists = MetadataUtils.getArrayOrString(peopleObj, "artists", file);
+                        String[] modellers = MetadataUtils.getArrayOrString(peopleObj, "modellers", file);
+                        String[] animators = MetadataUtils.getArrayOrString(peopleObj, "animators", file);
+                        String[] audioEngineers = MetadataUtils.getArrayOrString(peopleObj, "audioEngineers", file);
+                        String[] additionalCredits = MetadataUtils.getArrayOrString(peopleObj, "additionalCredits", file, 256);
 
                         // Get optional icon
-                        String iconStr = getString(jsonObject, "icon", "default.png", file);
+                        String iconStr = MetadataUtils.getString(jsonObject, "icon", "default.png", file);
                         Path icon = Path.of(iconStr);
-
-                        // Get optional mixin usage (boolean)
-                        boolean usesMixins = jsonObject.getBoolean("usesMixins", false);
 
                         // Get and validate contact details
                         JsonValue contactJson = jsonObject.get("contact");
@@ -114,13 +90,13 @@ public class ModDiscovery implements ITransformationService {
                         }
 
                         UrlValidator validator = new UrlValidator(UrlValidator.ALLOW_2_SLASHES);
-                        String homepage = validateURL(validator, "homepage", contactObj.getString("homepage", ""), file);
-                        String issues = validateURL(validator, "issues", contactObj.getString("issues", ""), file);
-                        String source = validateURL(validator, "source", contactObj.getString("source", ""), file);
-                        String wiki = validateURL(validator, "wiki", contactObj.getString("wiki", ""), file);
-                        String youtube = validateURL(validator, "youtube", contactObj.getString("youtube", ""), file);
-                        String twitter = validateURL(validator, "twitter", contactObj.getString("twitter", ""), file);
-                        String discord = validateURL(validator, "discord", contactObj.getString("discord", ""), file);
+                        String homepage = MetadataUtils.validateURL(validator, "homepage", contactObj.getString("homepage", ""), file);
+                        String issues = MetadataUtils.validateURL(validator, "issues", contactObj.getString("issues", ""), file);
+                        String source = MetadataUtils.validateURL(validator, "source", contactObj.getString("source", ""), file);
+                        String wiki = MetadataUtils.validateURL(validator, "wiki", contactObj.getString("wiki", ""), file);
+                        String youtube = MetadataUtils.validateURL(validator, "youtube", contactObj.getString("youtube", ""), file);
+                        String twitter = MetadataUtils.validateURL(validator, "twitter", contactObj.getString("twitter", ""), file);
+                        String discord = MetadataUtils.validateURL(validator, "discord", contactObj.getString("discord", ""), file);
 
                         // Construct contact
                         ModContainer.Contact.Builder contact = new ModContainer.Contact.Builder()
@@ -150,15 +126,9 @@ public class ModDiscovery implements ITransformationService {
                                 .people(people)
                                 .icon(icon)
                                 .contact(contact);
-                        if(usesMixins) {
-                            containerBuilder = containerBuilder.usesMixins();
-                        }
 
                         ModContainer container = containerBuilder.build();
                         MODS.add(container);
-
-                        // Close resources
-                        stream.close();
 
                         return FileVisitResult.CONTINUE;
                     } catch (IOException | ParseException exception) {
@@ -175,80 +145,16 @@ public class ModDiscovery implements ITransformationService {
         }
     }
 
-    private static String[] getArrayOrString(JsonObject object, String name, Path modLoc, boolean shouldThrowIfMissing) {
-        JsonValue itemsJson = object.get(name);
-        String[] items;
-        if(itemsJson != null && itemsJson.isArray()) {
-            String[] arr = itemsJson.asArray().values().stream().map(JsonValue::asString).toArray(String[]::new);
-            for (int i = 0; i < arr.length; i++) {
-                String author = arr[i];
-                lengthCheck(name + " " + (i + 1), author, modLoc, 4, 32);
-            }
-
-            items = arr;
-        } else if(itemsJson != null && itemsJson.isString()) {
-            items = new String[] { itemsJson.asString() };
-        } else
-            items = new String[0];
-
-        if(shouldThrowIfMissing)
-            if(items.length == 0)
-                throw new MetadataParseException("At least 1 " + name + " must be provided for mod: " + modLoc);
-
-        return items;
-    }
-
-    private static String[] getArrayOrString(JsonObject object, String name, Path modLoc) {
-        return getArrayOrString(object, name, modLoc, false);
-    }
-
-    private static void lengthCheck(String name, String value, Path modLoc, int minLength, int maxLength) {
-        if(value == null || value.isBlank())
-            throw new InvalidModidException("Provided " + name + "(" + value + ") in mod(" + modLoc + ") must not be blank!");
-        if(value.length() < minLength)
-            throw new InvalidModidException("Provided " + name + "(" + value + ") in mod(" + modLoc + ") must be at least " + minLength + " characters!");
-        if(value.length() > maxLength)
-            throw new InvalidModidException("Provided " + name + "(" + value + ") in mod(" + modLoc + ") must be fewer than " + maxLength + " characters!");
-    }
-
-    private static String getString(JsonObject object, String name, String defaultValue, Path path) throws MetadataParseException {
-        String value = object.getString(name, defaultValue);
-        if(value != null && value.isBlank()) {
-            throw new MetadataParseException(name + " was not provided for mod: " + path);
-        }
-
-        return value;
-    }
-
-    private static String getString(JsonObject object, String name, Path path) throws MetadataParseException {
-        return getString(object, name, "", path);
-    }
-
-    private static String validateURL(UrlValidator validator, String fieldName, String url, Path path) {
-        if(!url.isBlank() && !validator.isValid(url))
-            throw new MetadataParseException(fieldName + " url is invalid in mod: " + path);
-
-        return url;
-    }
-
-    private static boolean isValidModid(String modid) {
-        for(int index = 0; index < modid.length(); ++index) {
-            if (!modidAllows(modid.charAt(index))) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static boolean modidAllows(char c) {
-        return c == '_' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '.';
+    @Override
+    public @NotNull String name() {
+        return "brass:moddiscovery";
     }
 
     @Override
-    public void onLoad(IEnvironment env, Set<String> otherServices) {
+    public void initialize(IEnvironment environment) {}
 
-    }
+    @Override
+    public void onLoad(IEnvironment env, Set<String> otherServices) {}
 
     @Override
     @SuppressWarnings("rawtypes")
