@@ -6,15 +6,15 @@ import org.jetbrains.annotations.NotNull;
 import java.nio.file.Path;
 
 public record ModContainer(@NotNull String modid, @NotNull String name, @NotNull String version,
-                           @NotNull String description, @NotNull String license, @NotNull String[] authors,
+                           @NotNull String description, @NotNull String entrypoint, @NotNull String license, @NotNull People people,
                            @NotNull Path icon, boolean usesMixins, @NotNull Contact contact) {
     public static class Builder {
         private final String modid;
-        private String name, version, description, license;
-        private String[] authors;
+        private String name, version, description, entrypoint, license;
         private Path icon;
         private boolean usesMixins;
         private Contact contact;
+        private People people;
 
         public Builder(String modid) {
             this.modid = modid;
@@ -35,13 +35,13 @@ public record ModContainer(@NotNull String modid, @NotNull String name, @NotNull
             return this;
         }
 
-        public Builder license(String license) {
-            this.license = license;
+        public Builder entrypoint(String entrypoint) {
+            this.entrypoint = entrypoint;
             return this;
         }
 
-        public Builder authors(String... authors) {
-            this.authors = authors;
+        public Builder license(String license) {
+            this.license = license;
             return this;
         }
 
@@ -64,8 +64,17 @@ public record ModContainer(@NotNull String modid, @NotNull String name, @NotNull
             return contact(contact.build());
         }
 
+        public Builder people(People people) {
+            this.people = people;
+            return this;
+        }
+
+        public Builder people(People.Builder people) {
+            return people(people.build());
+        }
+
         public ModContainer build() {
-            return new ModContainer(modid, name, version, description, license, authors, icon, usesMixins, contact);
+            return new ModContainer(modid, name, version, description, entrypoint, license, people, icon, usesMixins, contact);
         }
     }
 
@@ -110,6 +119,48 @@ public record ModContainer(@NotNull String modid, @NotNull String name, @NotNull
 
             public Contact build() {
                 return new Contact(homepage, issues, source, wiki, youtube, twitter, discord);
+            }
+        }
+    }
+
+    public record People(@NotNull String[] developers, String[] artists, String[] modellers, String[] animators, String[] audioEngineers, String[] additionalCredits) {
+        public static class Builder {
+            private final String[] developers;
+            private String[] artists, modellers, animators, audioEngineers, additionalCredits;
+
+            public Builder(@NotNull String developer, String... additionalDevelopers) {
+                this.developers = new String[additionalDevelopers.length + 1];
+                this.developers[0] = developer;
+                System.arraycopy(additionalDevelopers, 0, this.developers, 1, developers.length - 1);
+            }
+
+            public Builder artists(String... artists) {
+                this.artists = artists;
+                return this;
+            }
+
+            public Builder modellers(String... modellers) {
+                this.modellers = modellers;
+                return this;
+            }
+
+            public Builder animators(String... animators) {
+                this.animators = animators;
+                return this;
+            }
+
+            public Builder audioEngineers(String... audioEngineers) {
+                this.audioEngineers = audioEngineers;
+                return this;
+            }
+
+            public Builder additionalCredits(String... additionalCredits) {
+                this.additionalCredits = additionalCredits;
+                return this;
+            }
+
+            public People build() {
+                return new People(this.developers, this.artists, this.modellers, this.animators, this.audioEngineers, this.additionalCredits);
             }
         }
     }

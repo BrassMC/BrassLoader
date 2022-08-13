@@ -11,29 +11,30 @@ import org.apache.commons.validator.routines.UrlValidator;
 import org.hjson.JsonObject;
 import org.hjson.JsonValue;
 import org.hjson.ParseException;
+import org.jetbrains.annotations.NotNull;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.zip.ZipException;
+import java.util.regex.Pattern;
 
 @AutoService(ITransformationService.class)
 public class ModDiscovery implements ITransformationService {
+    public static final List<ModContainer> MODS = new ArrayList<>();
+
+    private static final Pattern MODID_PATTERN = Pattern.compile("([a-z0-9/._-])");
     private static final Path MODS_FOLDER = Path.of("mods");
 
     @Override
-    public String name() {
+    public @NotNull String name() {
         return "brass:moddiscovery";
     }
 
@@ -48,36 +49,61 @@ public class ModDiscovery implements ITransformationService {
             Files.walkFileTree(MODS_FOLDER, new SimpleFileVisitor<>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-//                    try {
-//                        SecureJar secureJar = SecureJar.from(file);
-//                        Path metadata = secureJar.getPath("mod.hjson");
-//                        try(var fileReader = new BufferedReader(new FileReader(metadata.toFile()))) {
-//                            var content = fileReader.lines().collect(Collectors.joining());
-//                            JsonObject json = JsonValue.readHjson(content).asObject();
-//                            System.out.println(json);
-//                        }
-//                    } catch(ParseException exception) {
-//
-//                    }
+                    try {
+                        // Read jar
+                        SecureJar secureJar = SecureJar.from(file);
+                        Path metadata = secureJar.getPath("mod.hjson");
+                        InputStream stream;
+                        if (Files.exists(metadata))
+                            stream = Files.newInputStream(metadata);
+                        else
+                            return FileVisitResult.CONTINUE;
 
-                    try(var jarFile = new JarFile(file.toFile())) {
-                        JarEntry metadata = jarFile.getJarEntry("mod.hjson");
-                        JsonObject jsonObject = JsonValue.readHjson(new String(jarFile.getInputStream(metadata).readAllBytes())).asObject();
+                        // Parse metadata as hjson
+                        JsonObject jsonObject = JsonValue.readHjson(new String(stream.readAllBytes())).asObject();
+
+                        // Get and validate the mandatory mod details
                         String modid = getString(jsonObject, "modid", file);
+                        lengthCheck("modid", modid, file, 3, 20);
+                        if(!MODID_PATTERN.matcher(modid).matches())
+                            throw new InvalidModidException("Provided modid(" + modid + ") in mod(" + file + ") must match the expression: " + MODID_PATTERN.pattern());
+
                         String name = getString(jsonObject, "name", file);
+                        lengthCheck("name", name, file, 4, 32);
+
                         String version = getString(jsonObject, "version", file);
-                        String description = getString(jsonObject, "license", file);
+                        lengthCheck("version", version, file, 1, 64);
 
-                        JsonValue authorsJson = jsonObject.get("authors");
-                        if(authorsJson == null)
-                            throw new MetadataParseException("At least 1 author must be provided for mod: " + file);
-                        String[] authors = authorsJson.asArray().values().stream().map(JsonValue::asString).toArray(String[]::new);
+                        String description = getString(jsonObject, "description", file);
+                        lengthCheck("description", description, file, 4, 2056);
 
+                        String entrypoint = getString(jsonObject, "entrypoint", file);
+
+                        String license = getString(jsonObject, "license", file);
+                        lengthCheck("license", license, file, 3, 64);
+
+                        // Get and validate the people object
+                        JsonValue peopleValue = jsonObject.get("people");
+                        if(peopleValue == null)
+                            throw new MetadataParseException("The people(including at least 1 developer) must be provided for mod: " + file);
+
+                        JsonObject peopleObj = peopleValue.asObject();
+
+                        String[] developers = getArrayOrString(peopleObj, "developers", file, true);
+                        String[] artists = getArrayOrString(peopleObj, "artists", file);
+                        String[] modellers = getArrayOrString(peopleObj, "modellers", file);
+                        String[] animators = getArrayOrString(peopleObj, "animators", file);
+                        String[] audioEngineers = getArrayOrString(peopleObj, "audioEngineers", file);
+                        String[] additionalCredits = getArrayOrString(peopleObj, "additionalCredits", file);
+
+                        // Get optional icon
                         String iconStr = getString(jsonObject, "icon", "default.png", file);
                         Path icon = Path.of(iconStr);
 
+                        // Get optional mixin usage (boolean)
                         boolean usesMixins = jsonObject.getBoolean("usesMixins", false);
 
+                        // Get and validate contact details
                         JsonValue contactJson = jsonObject.get("contact");
                         JsonObject contactObj;
                         if(contactJson != null) {
@@ -95,6 +121,7 @@ public class ModDiscovery implements ITransformationService {
                         String twitter = validateURL(validator, "twitter", contactObj.getString("twitter", ""), file);
                         String discord = validateURL(validator, "discord", contactObj.getString("discord", ""), file);
 
+                        // Construct contact
                         ModContainer.Contact.Builder contact = new ModContainer.Contact.Builder()
                                 .homepage(homepage)
                                 .issues(issues)
@@ -104,18 +131,33 @@ public class ModDiscovery implements ITransformationService {
                                 .twitter(twitter)
                                 .discord(discord);
 
-                        ModContainer.Builder container = new ModContainer.Builder(modid)
+                        // Construct People
+                        ModContainer.People.Builder people = new ModContainer.People.Builder(developers[0], Arrays.copyOfRange(developers, 1, developers.length))
+                                .artists(artists)
+                                .modellers(modellers)
+                                .animators(animators)
+                                .audioEngineers(audioEngineers)
+                                .additionalCredits(additionalCredits);
+
+                        //Construct container
+                        ModContainer.Builder containerBuilder = new ModContainer.Builder(modid)
                                 .name(name)
                                 .version(version)
                                 .description(description)
-                                .authors(authors)
+                                .license(license)
+                                .entrypoint(entrypoint)
+                                .people(people)
                                 .icon(icon)
                                 .contact(contact);
                         if(usesMixins) {
-                            container.usesMixins();
+                            containerBuilder = containerBuilder.usesMixins();
                         }
 
-                        ModContainer container1 = container.build();
+                        ModContainer container = containerBuilder.build();
+                        MODS.add(container);
+
+                        // Close resources
+                        stream.close();
                     } catch (IOException | ParseException exception) {
                         exception.printStackTrace();
                     }
@@ -126,6 +168,42 @@ public class ModDiscovery implements ITransformationService {
             throw new RuntimeException(exception);
         }
         return ITransformationService.super.completeScan(layerManager);
+    }
+
+    private static String[] getArrayOrString(JsonObject object, String name, Path modLoc, boolean shouldThrowIfMissing) {
+        JsonValue itemsJson = object.get(name);
+        String[] items;
+        if(itemsJson.isArray()) {
+            String[] arr = itemsJson.asArray().values().stream().map(JsonValue::asString).toArray(String[]::new);
+            for (int i = 0; i < arr.length; i++) {
+                String author = arr[i];
+                lengthCheck(name + " " + (i + 1), author, modLoc, 4, 32);
+            }
+
+            items = arr;
+        } else if(itemsJson.isString()) {
+            items = new String[] { itemsJson.asString() };
+        } else
+            items = new String[0];
+
+        if(shouldThrowIfMissing)
+            if(items.length == 0)
+                throw new MetadataParseException("At least 1 " + name + " must be provided for mod: " + modLoc);
+
+        return items;
+    }
+
+    private static String[] getArrayOrString(JsonObject object, String name, Path modLoc) {
+        return getArrayOrString(object, name, modLoc, false);
+    }
+
+    private static void lengthCheck(String name, String value, Path modLoc, int minLength, int maxLength) {
+        if(value == null || value.isBlank())
+            throw new InvalidModidException("Provided " + name + "(" + value + ") in mod(" + modLoc + ") must not be blank!");
+        if(value.length() < minLength)
+            throw new InvalidModidException("Provided " + name + "(" + value + ") in mod(" + modLoc + ") must be at least " + minLength + " characters!");
+        if(value.length() > maxLength)
+            throw new InvalidModidException("Provided " + name + "(" + value + ") in mod(" + modLoc + ") must be fewer than " + maxLength + " characters!");
     }
 
     private static String getString(JsonObject object, String name, String defaultValue, Path path) throws MetadataParseException {
@@ -155,7 +233,7 @@ public class ModDiscovery implements ITransformationService {
 
     @Override
     @SuppressWarnings("rawtypes")
-    public List<ITransformer> transformers() {
+    public @NotNull List<ITransformer> transformers() {
         return List.of();
     }
 }
