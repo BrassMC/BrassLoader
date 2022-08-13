@@ -69,7 +69,7 @@ public class ModDiscovery implements ITransformationService {
                         String modid = getString(jsonObject, "modid", file);
                         lengthCheck("modid", modid, file, 3, 20);
                         if(!isValidModid(modid))
-                            throw new InvalidModidException("Provided modid(" + modid + ") in mod(" + file + ") must match the expression: " + MODID_PATTERN.pattern());
+                            throw new InvalidModidException("Provided modid(" + modid + ") in mod(" + file + ") must match the expression: a-z0-9/._-");
 
                         String name = getString(jsonObject, "name", file);
                         lengthCheck("name", name, file, 4, 32);
