@@ -2,10 +2,11 @@ import io.github.brassmc.bradle.task.DownloadMCTask
 import io.github.brassmc.bradle.task.RemapJarTask
 import java.nio.file.Files
 import java.util.function.Function
+import io.github.brassmc.bradle.util.gson.Library.OS
 
 plugins {
     id 'java'
-    id 'io.github.brassmc.bradle' version '0.4.0'
+    id 'io.github.brassmc.bradle' version '0.4.1'
 }
 
 repositories {
@@ -48,8 +49,10 @@ final asm = [
 ]
 
 dependencies {
-    implementation 'com.google.guava:guava:31.1-jre'
-    implementation 'org.jetbrains:annotations:23.0.0'
+    bootImplementation 'com.google.guava:guava:31.1-jre'
+    bootImplementation 'org.jetbrains:annotations:23.0.0'
+    bootImplementation 'org.hjson:hjson:3.0.0'
+    bootImplementation 'commons-validator:commons-validator:1.7'
 
     boot 'cpw.mods:bootstraplauncher:1.1.2'
     boot "cpw.mods:securejarhandler:$sshVersion"
@@ -66,6 +69,11 @@ dependencies {
     mixinCompileOnly "cpw.mods:securejarhandler:$sshVersion"
     minecraftRuntime "cpw.mods:modlauncher:$mmlVersion"
     minecraftRuntime "org.spongepowered:mixin:$mixinVersion"
+
+    minecraftRuntime 'com.google.guava:guava:31.1-jre'
+    minecraftRuntime 'org.jetbrains:annotations:23.0.0'
+    minecraftRuntime 'org.hjson:hjson:3.0.0'
+    minecraftRuntime 'commons-validator:commons-validator:1.7'
 
     bootCompileOnly group:'com.google.auto.service', name:'auto-service', version:'1.0.1'
     bootAnnotationProcessor group:'com.google.auto.service', name:'auto-service', version:'1.0.1'
@@ -164,9 +172,9 @@ final var configureRunTask = { JavaExec it, String type ->
             '--add-opens', "java.base/java.lang.invoke=$sshModule",
             '--add-exports', "java.base/sun.security.util=$sshModule",
             '--add-exports', 'jdk.naming.dns/com.sun.jndi.dns=java.naming',
-
-            '-Dmixin.debug.verbose=true', '-Dmixin.debug.export=true'
+            '-Dmixin.debug.verbose=true', '-Dmixin.debug.export=true',
     )
+    if (OS.current in [OS.LINUX, OS.OSX]) it.jvmArgs('-XstartOnFirstThread')
     it.group = 'minecraft'
 
     Files.createDirectories(it.workingDir.toPath())
