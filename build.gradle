@@ -49,8 +49,10 @@ final asm = [
 ]
 
 dependencies {
-    implementation 'com.google.guava:guava:31.1-jre'
-    implementation 'org.jetbrains:annotations:23.0.0'
+    bootImplementation 'com.google.guava:guava:31.1-jre'
+    bootImplementation 'org.jetbrains:annotations:23.0.0'
+    bootImplementation 'org.hjson:hjson:3.0.0'
+    bootImplementation 'commons-validator:commons-validator:1.7'
 
     boot 'cpw.mods:bootstraplauncher:1.1.2'
     boot "cpw.mods:securejarhandler:$sshVersion"
@@ -67,6 +69,11 @@ dependencies {
     mixinCompileOnly "cpw.mods:securejarhandler:$sshVersion"
     minecraftRuntime "cpw.mods:modlauncher:$mmlVersion"
     minecraftRuntime "org.spongepowered:mixin:$mixinVersion"
+
+    minecraftRuntime 'com.google.guava:guava:31.1-jre'
+    minecraftRuntime 'org.jetbrains:annotations:23.0.0'
+    minecraftRuntime 'org.hjson:hjson:3.0.0'
+    minecraftRuntime 'commons-validator:commons-validator:1.7'
 
     bootCompileOnly group:'com.google.auto.service', name:'auto-service', version:'1.0.1'
     bootAnnotationProcessor group:'com.google.auto.service', name:'auto-service', version:'1.0.1'
