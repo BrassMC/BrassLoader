@@ -30,7 +30,6 @@ import java.util.regex.Pattern;
 public class ModDiscovery implements ITransformationService {
     public static final List<ModContainer> MODS = new ArrayList<>();
 
-    private static final Pattern MODID_PATTERN = Pattern.compile("a-z0-9/._-");
     private static final Path MODS_FOLDER = Path.of("mods");
 
     @Override
