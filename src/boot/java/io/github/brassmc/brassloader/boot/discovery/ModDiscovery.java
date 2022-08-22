@@ -35,6 +35,8 @@ public class ModDiscovery implements ITransformationService {
         try {
             final List<SecureJar> mods = new ArrayList<>();
 
+            MODS_FOLDER.toFile().mkdirs();
+
             Files.walkFileTree(MODS_FOLDER, Set.of(), 1, new SimpleFileVisitor<>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
@@ -53,7 +55,7 @@ public class ModDiscovery implements ITransformationService {
 
                         // Get and validate the mandatory mod details
                         String modid = MetadataUtils.getStringWithLength(jsonObject, "modId", file, 3, 20);
-                        if(!MetadataUtils.isValidModid(modid))
+                        if (!MetadataUtils.isValidModid(modid))
                             throw new InvalidModidException("Provided modid(" + modid + ") in mod(" + file + ") must match the expression: a-z0-9/._-");
 
                         String name = MetadataUtils.getStringWithLength(jsonObject, "name", file, 4, 32);
@@ -64,7 +66,7 @@ public class ModDiscovery implements ITransformationService {
 
                         // Get and validate the people object
                         JsonValue peopleValue = jsonObject.get("people");
-                        if(peopleValue == null)
+                        if (peopleValue == null)
                             throw new MetadataParseException("The people(including at least 1 developer) must be provided for mod: " + file);
 
                         JsonObject peopleObj = peopleValue.asObject();
@@ -83,7 +85,7 @@ public class ModDiscovery implements ITransformationService {
                         // Get and validate contact details
                         JsonValue contactJson = jsonObject.get("contact");
                         JsonObject contactObj;
-                        if(contactJson != null) {
+                        if (contactJson != null) {
                             contactObj = contactJson.asObject();
                         } else {
                             contactObj = new JsonObject();
@@ -149,10 +151,12 @@ public class ModDiscovery implements ITransformationService {
     }
 
     @Override
-    public void initialize(IEnvironment environment) {}
+    public void initialize(IEnvironment environment) {
+    }
 
     @Override
-    public void onLoad(IEnvironment env, Set<String> otherServices) {}
+    public void onLoad(IEnvironment env, Set<String> otherServices) {
+    }
 
     @Override
     @SuppressWarnings("rawtypes")
