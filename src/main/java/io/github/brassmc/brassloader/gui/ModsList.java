@@ -3,17 +3,16 @@ package io.github.brassmc.brassloader.gui;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import io.github.brassmc.brassloader.boot.discovery.ModDiscovery;
+import io.github.brassmc.brassloader.boot.mods.ModContainer;
 import io.github.brassmc.brassloader.util.HoveredProvider;
-import io.github.brassmc.brassloader.util.ModSummary;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.NotNull;
 
@@ -22,19 +21,18 @@ import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.UnaryOperator;
 
 public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
     private final ModsListScreen screen;
     private String filter = "";
     @Nullable
-    private List<ModSummary> currentlyDisplayed;
-    private CompletableFuture<List<ModSummary>> pending;
+    private List<ModContainer> currentlyDisplayed;
+    private CompletableFuture<List<ModContainer>> pending;
     private FilterDirection filterDirection = FilterDirection.NONE;
     private FilterType filterType = FilterType.NONE;
 
-    private final List<ModSummary> items = new ArrayList<>();
+    private final List<ModContainer> items = new ArrayList<>();
 
     public ModsList(ModsListScreen screen, Minecraft minecraft, int width, int height, int top, int bottom, int left, int right, int itemHeight) {
         super(minecraft, 0, 0, 0, 0, itemHeight);
@@ -110,7 +108,7 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
             this.currentlyDisplayed = this.filterType.descendingSorter.apply(this.currentlyDisplayed);
         }
 
-        this.currentlyDisplayed.forEach(modSummary -> addEntry(new ModListEntry(this, modSummary)));
+        this.currentlyDisplayed.forEach(ModContainer -> addEntry(new ModListEntry(this, ModContainer)));
 
         notifyListUpdated();
     }
@@ -127,6 +125,7 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
             return super.mouseClicked(mouseX, mouseY, keyCode);
         }
 
+        setSelected(null);
         return super.mouseClicked(mouseX, mouseY, keyCode);
     }
 
@@ -153,7 +152,7 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
     @SuppressWarnings("unchecked")
     @Override
     public void render(@NotNull PoseStack poseStack, int mouseX, int mouseY, float partialTicks) {
-        List<ModSummary> modSummaries = pollMods();
+        List<ModContainer> modSummaries = pollMods();
         if(modSummaries != this.currentlyDisplayed && modSummaries != null) {
             handleNewMods(currentlyDisplayed);
         }
@@ -229,7 +228,7 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
         fill(stack, left + 1, top, left + width - 1, top + height, 0xFF121212);
     }
 
-    private void renderBackground(Tesselator tesselator, BufferBuilder buffer) {
+    protected void renderBackground(Tesselator tesselator, BufferBuilder buffer) {
         RenderSystem.setShaderTexture(0, GuiComponent.BACKGROUND_LOCATION);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
@@ -319,7 +318,7 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
     }
 
     @Nullable
-    private List<ModSummary> pollMods() {
+    private List<ModContainer> pollMods() {
         try {
             return this.pending.getNow(null);
         } catch (CancellationException | CompletionException | NullPointerException exception) {
@@ -328,22 +327,18 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
     }
 
     // TODO: Get from mod discovery
-    private CompletableFuture<List<ModSummary>> loadMods() {
-        List<ModSummary> modSummaryList = new ArrayList<>();
-        for(int i = 0; i < 20; i++) {
-            boolean isBeans = ThreadLocalRandom.current().nextBoolean();
-            ModSummary summary = new ModSummary(isBeans ? "Beans Mod" : "Peas Mod",
-                    isBeans ? new ResourceLocation("brassloader:beans.png") : new ResourceLocation("brassloader:peas.png"),
-                    isBeans ? "A mod about beans!" : "A mod about peas!");
-            modSummaryList.add(summary);
-            this.items.add(summary);
-        }
+    private CompletableFuture<List<ModContainer>> loadMods() {
+        List<ModContainer> mods = new ArrayList<>();
+        ModDiscovery.MODS.forEach(mod -> {
+            mods.add(mod);
+            this.items.add(mod);
+        });
 
-        return CompletableFuture.completedFuture(modSummaryList);
+        return CompletableFuture.completedFuture(mods);
     }
 
-    private void handleNewMods(@Nullable List<ModSummary> modSummaryList) {
-        if(modSummaryList == null) {
+    private void handleNewMods(@Nullable List<ModContainer> ModContainerList) {
+        if(ModContainerList == null) {
             fillLoadingMods();
         } else {
             fillMods(this.filter);
@@ -378,18 +373,18 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
             this.currentlyDisplayed.clear();
         }
 
-        for (ModSummary modSummary : this.items) {
-            if(matchesFilter(filter, modSummary)) {
-                addEntry(new ModListEntry(this, modSummary));
-                this.currentlyDisplayed.add(modSummary);
+        for (ModContainer ModContainer : this.items) {
+            if(matchesFilter(filter, ModContainer)) {
+                addEntry(new ModListEntry(this, ModContainer));
+                this.currentlyDisplayed.add(ModContainer);
             }
         }
 
         notifyListUpdated();
     }
 
-    private boolean matchesFilter(String filter, ModSummary modSummary) {
-        return modSummary.getName().toLowerCase(Locale.ROOT).contains(filter);
+    private boolean matchesFilter(String filter, ModContainer mod) {
+        return mod.name().toLowerCase(Locale.ROOT).contains(filter);
     }
 
     private void notifyListUpdated() {
@@ -399,28 +394,28 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
     public static final class ModListEntry extends ObjectSelectionList.Entry<ModsList.ModListEntry> implements AutoCloseable {
         private final Minecraft minecraft;
         private final ModsListScreen screen;
-        private final ModSummary summary;
+        private final ModContainer mod;
 
-        public ModListEntry(ModsList list,  ModSummary summary) {
+        public ModListEntry(ModsList list,  ModContainer mod) {
             this.minecraft = list.minecraft;
             this.screen = list.screen;
-            this.summary = summary;
+            this.mod = mod;
         }
 
         @Override
         public @NotNull Component getNarration() {
-            return Component.translatable("brassloader.narration.modList.entry", this.summary.getName());
+            return Component.translatable("brassloader.narration.modList.entry", this.mod.name());
         }
 
         @Override
         public void render(@NotNull PoseStack poseStack, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTicks) {
-            RenderSystem.setShader(GameRenderer::getPositionTexShader);
-            RenderSystem.setShaderTexture(0, this.summary.getIcon());
-            blit(poseStack, left + height / 2 - 12, top + height / 2 - 12, 0, 0, 24, 24, 24, 24);
+            //RenderSystem.setShader(GameRenderer::getPositionTexShader);
+            //RenderSystem.setShaderTexture(0, this.mod.icon());
+            //blit(poseStack, left + height / 2 - 12, top + height / 2 - 12, 0, 0, 24, 24, 24, 24);
 
             this.minecraft.font.draw(
                     poseStack,
-                    this.summary.getName(),
+                    this.mod.name(),
                     left + height / 2f - this.minecraft.font.lineHeight / 2f + 20,
                     top + height / 2f - this.minecraft.font.lineHeight / 2f,
                     0xFFFFFF
@@ -428,6 +423,10 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
         }
 
         public void close() {
+        }
+
+        public ModContainer getMod() {
+            return this.mod;
         }
     }
 
@@ -476,21 +475,21 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
 
     public enum FilterType {
         ALPHABETICAL("brassloader.modsList.filter.alphabetical",
-                mods -> mods.stream().sorted(Comparator.comparing(ModSummary::getName)).toList(),
-                mods -> mods.stream().sorted(Comparator.comparing(ModSummary::getName).reversed()).toList()
+                mods -> mods.stream().sorted(Comparator.comparing(ModContainer::name)).toList(),
+                mods -> mods.stream().sorted(Comparator.comparing(ModContainer::name).reversed()).toList()
         ),
         NONE("brassloader.modsList.filter.none", mods -> mods, mods -> mods);
 
         private final Component name;
-        private final UnaryOperator<List<ModSummary>> ascendingSorter, descendingSorter;
+        private final UnaryOperator<List<ModContainer>> ascendingSorter, descendingSorter;
 
-        FilterType(Component name, UnaryOperator<List<ModSummary>> ascendingSorter, UnaryOperator<List<ModSummary>> descendingSorter) {
+        FilterType(Component name, UnaryOperator<List<ModContainer>> ascendingSorter, UnaryOperator<List<ModContainer>> descendingSorter) {
             this.name = name;
             this.ascendingSorter = ascendingSorter;
             this.descendingSorter = descendingSorter;
         }
 
-        FilterType(String name, UnaryOperator<List<ModSummary>> ascendingSorter, UnaryOperator<List<ModSummary>> descendingSorter) {
+        FilterType(String name, UnaryOperator<List<ModContainer>> ascendingSorter, UnaryOperator<List<ModContainer>> descendingSorter) {
             this(Component.translatable(name), ascendingSorter, descendingSorter);
         }
 
@@ -498,11 +497,11 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
             return this.name;
         }
 
-        public List<ModSummary> getAscendingSorter(List<ModSummary> modSummaries) {
+        public List<ModContainer> getAscendingSorter(List<ModContainer> modSummaries) {
             return this.ascendingSorter.apply(modSummaries);
         }
 
-        public List<ModSummary> getDescendingSorter(List<ModSummary> modSummaries) {
+        public List<ModContainer> getDescendingSorter(List<ModContainer> modSummaries) {
             return this.descendingSorter.apply(modSummaries);
         }
 

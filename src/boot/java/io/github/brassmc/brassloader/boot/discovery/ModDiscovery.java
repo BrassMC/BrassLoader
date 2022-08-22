@@ -132,10 +132,8 @@ public class ModDiscovery implements ITransformationService {
 
                         return FileVisitResult.CONTINUE;
                     } catch (IOException | ParseException exception) {
-                        exception.printStackTrace();
+                        throw new MetadataParseException(exception, "Metadata(mod.hjson) is invalid for mod: " + file);
                     }
-
-                    return super.visitFile(file, attrs);
                 }
             });
 
