@@ -35,7 +35,7 @@ public class ModDiscovery implements ITransformationService {
         try {
             final List<SecureJar> mods = new ArrayList<>();
 
-            MODS_FOLDER.toFile().mkdirs();
+            Files.createDirectories(MODS_FOLDER);
 
             Files.walkFileTree(MODS_FOLDER, Set.of(), 1, new SimpleFileVisitor<>() {
                 @Override
