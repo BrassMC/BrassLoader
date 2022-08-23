@@ -185,7 +185,7 @@ public class ModsListScreen extends Screen {
 
         if (this.list.getSelected() != null) {
             ModContainer mod = this.list.getSelected().getMod();
-            InformationPanelRenderer renderer = InformationPanelRenderer.PANELS.get(mod.modid());
+            InformationPanel.Renderer renderer = InformationPanel.PANELS.get(mod.modid());
 
             if (renderer != null) {
                 renderer.render(this, poseStack, mouseX, mouseY, partialTicks);
