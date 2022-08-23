@@ -19,13 +19,10 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public class ModsListScreen extends Screen {
@@ -139,27 +136,31 @@ public class ModsListScreen extends Screen {
         return this.searchBox.charTyped(codePoint, modifiers);
     }
 
-    private int getBoxX() {
+    public int getBoxPadding() {
+        return BOX_PADDING;
+    }
+
+    public int getBoxX() {
         return this.width / 2 + (BOX_PADDING * 2);
     }
 
-    private int getBoxY() {
+    public int getBoxY() {
         return 10;
     }
 
-    private int getBoxX1() {
+    public int getBoxX1() {
         return width - BOX_PADDING;
     }
 
-    private int getBoxY1() {
+    public int getBoxY1() {
         return height - BOX_PADDING;
     }
 
-    private int getBoxWidth() {
+    public int getBoxWidth() {
         return getBoxX1() - getBoxX();
     }
 
-    private int getBoxHeight() {
+    public int getBoxHeight() {
         return getBoxY1() - getBoxY();
     }
 
@@ -184,35 +185,40 @@ public class ModsListScreen extends Screen {
 
         if (this.list.getSelected() != null) {
             ModContainer mod = this.list.getSelected().getMod();
+            InformationPanelRenderer renderer = InformationPanelRenderer.PANELS.get(mod.modid());
 
-            renderScrollbar(tesselator, buffer, getBoxX1() - 6, 200, 50, getBoxX(), getBoxY(), getBoxX1(), getBoxY1());
+            if (renderer != null) {
+                renderer.render(this, poseStack, mouseX, mouseY, partialTicks);
+            } else {
+                renderScrollbar(tesselator, buffer, getBoxX1() - 6, 200, 50, getBoxX(), getBoxY(), getBoxX1(), getBoxY1());
 
-            poseStack.pushPose();
-            poseStack.scale(1.5f, 1.5f, 1.5f);
-            poseStack.translate((getBoxX() + getBoxWidth() / 2f) / 1.5f, getBoxY() + BOX_PADDING, 0f);
-            GuiComponent.drawCenteredString(poseStack, this.font, mod.name(), 0, 0, 0xFFFFFF);
-            poseStack.popPose();
+                poseStack.pushPose();
+                poseStack.scale(1.5f, 1.5f, 1.5f);
+                poseStack.translate((getBoxX() + getBoxWidth() / 2f) / 1.5f, getBoxY() + BOX_PADDING, 0f);
+                GuiComponent.drawCenteredString(poseStack, this.font, mod.name(), 0, 0, 0xFFFFFF);
+                poseStack.popPose();
 
-            GuiComponent.drawCenteredString(poseStack, this.font, mod.modid(), getBoxX() + getBoxWidth() / 2, getBoxY() + 35, 0xBABABA);
-            GuiComponent.drawCenteredString(poseStack, this.font, mod.version(), getBoxX() + getBoxWidth() / 2, getBoxY() + 45, 0x929292);
+                GuiComponent.drawCenteredString(poseStack, this.font, mod.modid(), getBoxX() + getBoxWidth() / 2, getBoxY() + 35, 0xBABABA);
+                GuiComponent.drawCenteredString(poseStack, this.font, mod.version(), getBoxX() + getBoxWidth() / 2, getBoxY() + 45, 0x929292);
 
-            List<FormattedCharSequence> description = Language.getInstance().getVisualOrder(this.font.getSplitter().splitLines(mod.description(), getBoxWidth() - 20, Style.EMPTY));
-            int descriptionHeight = description.size() * this.font.lineHeight;
-            for (FormattedCharSequence line : description) {
-                int lineY = getBoxY() + BOX_PADDING + 45 + 10 + (this.font.lineHeight * description.indexOf(line));
-                if(lineY > getBoxY() && lineY < getBoxY() + getBoxHeight() - this.font.lineHeight) {
-                    GuiComponent.drawString(poseStack, this.font, line, getBoxX() + BOX_PADDING, lineY, 0xFFFFFF);
+                List<FormattedCharSequence> description = Language.getInstance().getVisualOrder(this.font.getSplitter().splitLines(mod.description(), getBoxWidth() - 20, Style.EMPTY));
+                int descriptionHeight = description.size() * this.font.lineHeight;
+                for (FormattedCharSequence line : description) {
+                    int lineY = getBoxY() + BOX_PADDING + 45 + 10 + (this.font.lineHeight * description.indexOf(line));
+                    if (lineY > getBoxY() && lineY < getBoxY() + getBoxHeight() - this.font.lineHeight) {
+                        GuiComponent.drawString(poseStack, this.font, line, getBoxX() + BOX_PADDING, lineY, 0xFFFFFF);
+                    }
                 }
+
+                MutableComponent license = Component.literal(mod.license());
+                if (isMouseOver(mouseX, mouseY, getBoxX() + BOX_PADDING, getBoxY() + BOX_PADDING + 50 + descriptionHeight + BOX_PADDING, this.font.width(mod.license()), this.font.lineHeight)) {
+                    license = license.withStyle(ChatFormatting.UNDERLINE);
+                }
+
+                GuiComponent.drawString(poseStack, this.font, license, getBoxX() + BOX_PADDING, getBoxY() + BOX_PADDING + 50 + descriptionHeight + BOX_PADDING, 0xFFFFFF);
+
+                GuiComponent.drawString(poseStack, this.font, Component.translatable("brassloader.modsList.developers"), getBoxX() + BOX_PADDING, getBoxY() + BOX_PADDING + 50 + descriptionHeight + BOX_PADDING, 0xFFFFFF);
             }
-
-            MutableComponent license = Component.literal(mod.license());
-            if (isMouseOver(mouseX, mouseY, getBoxX() + BOX_PADDING, getBoxY() + BOX_PADDING + 50 + descriptionHeight + BOX_PADDING, this.font.width(mod.license()), this.font.lineHeight)) {
-                license = license.withStyle(ChatFormatting.UNDERLINE);
-            }
-
-            GuiComponent.drawString(poseStack, this.font, license, getBoxX() + BOX_PADDING, getBoxY() + BOX_PADDING + 50 + descriptionHeight + BOX_PADDING, 0xFFFFFF);
-
-            GuiComponent.drawString(poseStack, this.font, Component.translatable("brassloader.modsList.developers"), getBoxX() + BOX_PADDING, getBoxY() + BOX_PADDING + 50 + descriptionHeight + BOX_PADDING, 0xFFFFFF);
         }
 
         RenderSystem.enableBlend();
@@ -277,7 +283,7 @@ public class ModsListScreen extends Screen {
         if (maxScroll > 0) {
             RenderSystem.disableTexture();
             RenderSystem.setShader(GameRenderer::getPositionColorShader);
-            int clampedMax = (int)((float)((y1 - y0) * (y1 - y0)) / (float)maxScroll);
+            int clampedMax = (int) ((float) ((y1 - y0) * (y1 - y0)) / (float) maxScroll);
             clampedMax = Mth.clamp(clampedMax, 32, y1 - y0 - 8);
             int relativeAmount = scrollAmount * (y1 - y0 - clampedMax) / maxScroll + y0;
             if (relativeAmount < y0) {
