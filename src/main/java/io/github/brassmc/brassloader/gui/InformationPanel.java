@@ -4,7 +4,6 @@ import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import io.github.brassmc.brassloader.boot.discovery.ModDiscovery;
-import io.github.brassmc.brassloader.boot.mods.ModContainer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.locale.Language;
@@ -35,7 +34,7 @@ public class InformationPanel {
         void render(ModsListScreen screen, PoseStack poseStack, int mouseX, int mouseY, float partialTicks);
     }
 
-    public static Renderer createDefaultRenderer() {
+    private static Renderer createDefaultRenderer() {
         return (screen, poseStack, mouseX, mouseY, partialTicks) -> {
             Tesselator tesselator = Tesselator.getInstance();
             BufferBuilder buffer = tesselator.getBuilder();
