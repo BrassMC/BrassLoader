@@ -201,7 +201,7 @@ public class ModsListScreen extends Screen {
             if (renderer != null) {
                 renderer.render(this, poseStack, mouseX, mouseY, partialTicks);
             } else {
-                InformationPanel.PANELS.get("brass");
+                InformationPanel.PANELS.get("brass").render(this, poseStack, mouseX, mouseY, partialTicks);
             }
         } else {
             this.selectedMod = null;
