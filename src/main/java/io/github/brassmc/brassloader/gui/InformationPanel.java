@@ -11,7 +11,7 @@ public class InformationPanel {
 
     static final Map<String, Renderer> PANELS = new HashMap<>();
 
-    public static void createPanel(@Nonnull String modid, Renderer renderer) {
+    public static void registerPanel(@Nonnull String modid, Renderer renderer) {
         if (modid == null || ModDiscovery.MODS.stream().noneMatch(c -> c.modid().equals(modid)))
             throw new IllegalArgumentException("Attempted to create information panel with null, empty or non-present modid.");
         if (renderer != null)
