@@ -7,6 +7,7 @@ import io.github.brassmc.brassloader.boot.mods.ModContainer;
 import io.github.brassmc.brassloader.gui.ModsList.FilterType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -46,6 +47,8 @@ public class ModsListScreen extends Screen {
     protected ModsList list;
     protected Button filterButton;
     protected Button direction;
+
+    protected ModContainer selectedMod;
 
     private static final int BOX_PADDING = 10;
 
@@ -136,6 +139,10 @@ public class ModsListScreen extends Screen {
         return this.searchBox.charTyped(codePoint, modifiers);
     }
 
+    public ModContainer getSelectedMod() {
+        return selectedMod;
+    }
+
     public int getBoxPadding() {
         return BOX_PADDING;
     }
@@ -164,6 +171,10 @@ public class ModsListScreen extends Screen {
         return getBoxY1() - getBoxY();
     }
 
+    public Font getFont() {
+        return font;
+    }
+
     @Override
     public void render(@NotNull PoseStack poseStack, int mouseX, int mouseY, float partialTicks) {
         renderDirtBackground(0);
@@ -184,41 +195,16 @@ public class ModsListScreen extends Screen {
         super.render(poseStack, mouseX, mouseY, partialTicks);
 
         if (this.list.getSelected() != null) {
-            ModContainer mod = this.list.getSelected().getMod();
-            InformationPanel.Renderer renderer = InformationPanel.PANELS.get(mod.modid());
+            this.selectedMod = this.list.getSelected().getMod();
+            InformationPanel.Renderer renderer = InformationPanel.PANELS.get(this.selectedMod.modid());
 
             if (renderer != null) {
                 renderer.render(this, poseStack, mouseX, mouseY, partialTicks);
             } else {
-                renderScrollbar(tesselator, buffer, getBoxX1() - 6, 200, 50, getBoxX(), getBoxY(), getBoxX1(), getBoxY1());
-
-                poseStack.pushPose();
-                poseStack.scale(1.5f, 1.5f, 1.5f);
-                poseStack.translate((getBoxX() + getBoxWidth() / 2f) / 1.5f, getBoxY() + BOX_PADDING, 0f);
-                GuiComponent.drawCenteredString(poseStack, this.font, mod.name(), 0, 0, 0xFFFFFF);
-                poseStack.popPose();
-
-                GuiComponent.drawCenteredString(poseStack, this.font, mod.modid(), getBoxX() + getBoxWidth() / 2, getBoxY() + 35, 0xBABABA);
-                GuiComponent.drawCenteredString(poseStack, this.font, mod.version(), getBoxX() + getBoxWidth() / 2, getBoxY() + 45, 0x929292);
-
-                List<FormattedCharSequence> description = Language.getInstance().getVisualOrder(this.font.getSplitter().splitLines(mod.description(), getBoxWidth() - 20, Style.EMPTY));
-                int descriptionHeight = description.size() * this.font.lineHeight;
-                for (FormattedCharSequence line : description) {
-                    int lineY = getBoxY() + BOX_PADDING + 45 + 10 + (this.font.lineHeight * description.indexOf(line));
-                    if (lineY > getBoxY() && lineY < getBoxY() + getBoxHeight() - this.font.lineHeight) {
-                        GuiComponent.drawString(poseStack, this.font, line, getBoxX() + BOX_PADDING, lineY, 0xFFFFFF);
-                    }
-                }
-
-                MutableComponent license = Component.literal(mod.license());
-                if (isMouseOver(mouseX, mouseY, getBoxX() + BOX_PADDING, getBoxY() + BOX_PADDING + 50 + descriptionHeight + BOX_PADDING, this.font.width(mod.license()), this.font.lineHeight)) {
-                    license = license.withStyle(ChatFormatting.UNDERLINE);
-                }
-
-                GuiComponent.drawString(poseStack, this.font, license, getBoxX() + BOX_PADDING, getBoxY() + BOX_PADDING + 50 + descriptionHeight + BOX_PADDING, 0xFFFFFF);
-
-                GuiComponent.drawString(poseStack, this.font, Component.translatable("brassloader.modsList.developers"), getBoxX() + BOX_PADDING, getBoxY() + BOX_PADDING + 50 + descriptionHeight + BOX_PADDING, 0xFFFFFF);
+                InformationPanel.PANELS.get("brass");
             }
+        } else {
+            this.selectedMod = null;
         }
 
         RenderSystem.enableBlend();
@@ -230,7 +216,7 @@ public class ModsListScreen extends Screen {
         GuiComponent.drawString(poseStack, this.font, Component.translatable("brassloader.modsList.filter").append(":"), 25, this.height - 40 + this.font.lineHeight / 2, 0xFFFFFF);
     }
 
-    private static boolean isMouseOver(float mouseX, float mouseY, int x, int y, int width, int height) {
+    public static boolean isMouseOver(float mouseX, float mouseY, int x, int y, int width, int height) {
         return mouseX > x && mouseX < x + width && mouseY > y && mouseY < y + height;
     }
 
@@ -277,7 +263,7 @@ public class ModsListScreen extends Screen {
         }
     }
 
-    private static void renderScrollbar(Tesselator tesselator, BufferBuilder buffer, int left, int maxScroll, int scrollAmount, int x0, int y0, int x1, int y1) {
+    public static void renderScrollbar(Tesselator tesselator, BufferBuilder buffer, int left, int maxScroll, int scrollAmount, int x0, int y0, int x1, int y1) {
         int right = left + 6;
 
         if (maxScroll > 0) {
