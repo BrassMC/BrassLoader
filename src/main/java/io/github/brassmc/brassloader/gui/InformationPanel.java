@@ -18,6 +18,7 @@ public class InformationPanel {
             PANELS.put(modid, renderer);
     }
 
+    @FunctionalInterface
     public interface Renderer {
 
         void render(ModsListScreen screen, PoseStack poseStack, int mouseX, int mouseY, float partialTicks);
