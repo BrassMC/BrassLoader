@@ -55,6 +55,8 @@ public class ModDiscovery implements ITransformationService {
                         String modid = MetadataUtils.getStringWithLength(jsonObject, "modId", file, 3, 20);
                         if(!MetadataUtils.isValidModid(modid))
                             throw new InvalidModidException("Provided modid(" + modid + ") in mod(" + file + ") must match the expression: a-z0-9/._-");
+                        if(ModDiscovery.MODS.stream().anyMatch(c -> c.modid().equals(modid)))
+                            throw new InvalidModidException("Provided modid(" + modid + ") in mod(" + file + ") is already present, duplicate or present file must be removed.");
 
                         String name = MetadataUtils.getStringWithLength(jsonObject, "name", file, 4, 32);
                         String version = MetadataUtils.getStringWithLength(jsonObject, "version", file, 1, 64);
