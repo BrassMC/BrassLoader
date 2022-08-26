@@ -5,27 +5,20 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import io.github.brassmc.brassloader.boot.mods.ModContainer;
 import io.github.brassmc.brassloader.gui.ModsList.FilterType;
-import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.Style;
-import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public class ModsListScreen extends Screen {
@@ -49,6 +42,8 @@ public class ModsListScreen extends Screen {
     protected ModsList list;
     protected Button filterButton;
     protected Button direction;
+
+    protected ModContainer selectedMod;
 
     private static final int BOX_PADDING = 10;
 
@@ -139,28 +134,40 @@ public class ModsListScreen extends Screen {
         return this.searchBox.charTyped(codePoint, modifiers);
     }
 
-    private int getBoxX() {
+    public ModContainer getSelectedMod() {
+        return selectedMod;
+    }
+
+    public int getBoxPadding() {
+        return BOX_PADDING;
+    }
+
+    public int getBoxX() {
         return this.width / 2 + (BOX_PADDING * 2);
     }
 
-    private int getBoxY() {
+    public int getBoxY() {
         return 10;
     }
 
-    private int getBoxX1() {
+    public int getBoxX1() {
         return width - BOX_PADDING;
     }
 
-    private int getBoxY1() {
+    public int getBoxY1() {
         return height - BOX_PADDING;
     }
 
-    private int getBoxWidth() {
+    public int getBoxWidth() {
         return getBoxX1() - getBoxX();
     }
 
-    private int getBoxHeight() {
+    public int getBoxHeight() {
         return getBoxY1() - getBoxY();
+    }
+
+    public Font getFont() {
+        return font;
     }
 
     @Override
@@ -183,36 +190,16 @@ public class ModsListScreen extends Screen {
         super.render(poseStack, mouseX, mouseY, partialTicks);
 
         if (this.list.getSelected() != null) {
-            ModContainer mod = this.list.getSelected().getMod();
+            this.selectedMod = this.list.getSelected().getMod();
+            InformationPanel.Renderer renderer = InformationPanel.PANELS.get(this.selectedMod.modid());
 
-            renderScrollbar(tesselator, buffer, getBoxX1() - 6, 200, 50, getBoxX(), getBoxY(), getBoxX1(), getBoxY1());
-
-            poseStack.pushPose();
-            poseStack.scale(1.5f, 1.5f, 1.5f);
-            poseStack.translate((getBoxX() + getBoxWidth() / 2f) / 1.5f, getBoxY() + BOX_PADDING, 0f);
-            GuiComponent.drawCenteredString(poseStack, this.font, mod.name(), 0, 0, 0xFFFFFF);
-            poseStack.popPose();
-
-            GuiComponent.drawCenteredString(poseStack, this.font, mod.modid(), getBoxX() + getBoxWidth() / 2, getBoxY() + 35, 0xBABABA);
-            GuiComponent.drawCenteredString(poseStack, this.font, mod.version(), getBoxX() + getBoxWidth() / 2, getBoxY() + 45, 0x929292);
-
-            List<FormattedCharSequence> description = Language.getInstance().getVisualOrder(this.font.getSplitter().splitLines(mod.description(), getBoxWidth() - 20, Style.EMPTY));
-            int descriptionHeight = description.size() * this.font.lineHeight;
-            for (FormattedCharSequence line : description) {
-                int lineY = getBoxY() + BOX_PADDING + 45 + 10 + (this.font.lineHeight * description.indexOf(line));
-                if(lineY > getBoxY() && lineY < getBoxY() + getBoxHeight() - this.font.lineHeight) {
-                    GuiComponent.drawString(poseStack, this.font, line, getBoxX() + BOX_PADDING, lineY, 0xFFFFFF);
-                }
+            if (renderer != null) {
+                renderer.render(this, poseStack, mouseX, mouseY, partialTicks);
+            } else {
+                InformationPanel.PANELS.get("brass").render(this, poseStack, mouseX, mouseY, partialTicks);
             }
-
-            MutableComponent license = Component.literal(mod.license());
-            if (isMouseOver(mouseX, mouseY, getBoxX() + BOX_PADDING, getBoxY() + BOX_PADDING + 50 + descriptionHeight + BOX_PADDING, this.font.width(mod.license()), this.font.lineHeight)) {
-                license = license.withStyle(ChatFormatting.UNDERLINE);
-            }
-
-            GuiComponent.drawString(poseStack, this.font, license, getBoxX() + BOX_PADDING, getBoxY() + BOX_PADDING + 50 + descriptionHeight + BOX_PADDING, 0xFFFFFF);
-
-            GuiComponent.drawString(poseStack, this.font, Component.translatable("brassloader.modsList.developers"), getBoxX() + BOX_PADDING, getBoxY() + BOX_PADDING + 50 + descriptionHeight + BOX_PADDING, 0xFFFFFF);
+        } else {
+            this.selectedMod = null;
         }
 
         RenderSystem.enableBlend();
@@ -224,7 +211,7 @@ public class ModsListScreen extends Screen {
         GuiComponent.drawString(poseStack, this.font, Component.translatable("brassloader.modsList.filter").append(":"), 25, this.height - 40 + this.font.lineHeight / 2, 0xFFFFFF);
     }
 
-    private static boolean isMouseOver(float mouseX, float mouseY, int x, int y, int width, int height) {
+    public static boolean isMouseOver(float mouseX, float mouseY, int x, int y, int width, int height) {
         return mouseX > x && mouseX < x + width && mouseY > y && mouseY < y + height;
     }
 
@@ -271,13 +258,13 @@ public class ModsListScreen extends Screen {
         }
     }
 
-    private static void renderScrollbar(Tesselator tesselator, BufferBuilder buffer, int left, int maxScroll, int scrollAmount, int x0, int y0, int x1, int y1) {
+    public static void renderScrollbar(Tesselator tesselator, BufferBuilder buffer, int left, int maxScroll, int scrollAmount, int x0, int y0, int x1, int y1) {
         int right = left + 6;
 
         if (maxScroll > 0) {
             RenderSystem.disableTexture();
             RenderSystem.setShader(GameRenderer::getPositionColorShader);
-            int clampedMax = (int)((float)((y1 - y0) * (y1 - y0)) / (float)maxScroll);
+            int clampedMax = (int) ((float) ((y1 - y0) * (y1 - y0)) / (float) maxScroll);
             clampedMax = Mth.clamp(clampedMax, 32, y1 - y0 - 8);
             int relativeAmount = scrollAmount * (y1 - y0 - clampedMax) / maxScroll + y0;
             if (relativeAmount < y0) {
