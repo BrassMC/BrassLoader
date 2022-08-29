@@ -23,7 +23,6 @@ import java.util.Set;
 
 @Mixin(Minecraft.class)
 public class MinecraftMixin {
-
     @Overwrite
     private UserApiService createUserApiService(YggdrasilAuthenticationService service, GameConfig cfg) {
         return UserApiService.OFFLINE;
