@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Set;
 
 @Mixin(Minecraft.class)
-public abstract class MinecraftMixin {
+public class MinecraftMixin {
 
     @Overwrite
     private UserApiService createUserApiService(YggdrasilAuthenticationService service, GameConfig cfg) {
