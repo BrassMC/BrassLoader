@@ -59,6 +59,15 @@ public class ModDiscovery implements ITransformationService {
                             throw new InvalidModidException("Provided modid(" + modid + ") in mod(" + file + ") is already present, duplicate or present file must be removed.");
 
                         String name = MetadataUtils.getStringWithLength(jsonObject, "name", file, 4, 32);
+                        StringBuilder duplicateModid = new StringBuilder();
+                        if (ModDiscovery.MODS.stream().anyMatch(c -> {
+                            if (c.name().equals(name)) {
+                                duplicateModid.append(c.modid());
+                                return true;
+                            }
+                            return false;
+                        }))
+                            throw new MetadataParseException("Display name of mod(" + modid + ") is already present in mod(" + duplicateModid + "), duplicate or present file must be removed.");
                         String version = MetadataUtils.getStringWithLength(jsonObject, "version", file, 1, 64);
                         String description = MetadataUtils.getStringWithLength(jsonObject, "description", file, 4, 2056);
                         String entrypoint = MetadataUtils.getString(jsonObject, "entrypoint", file);
