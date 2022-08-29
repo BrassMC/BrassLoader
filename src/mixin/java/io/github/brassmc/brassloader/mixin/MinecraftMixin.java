@@ -14,6 +14,8 @@ import net.minecraft.server.packs.repository.PackSource;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Constant;
+import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 import java.nio.file.Path;
@@ -54,5 +56,10 @@ public class MinecraftMixin {
         });
         access.setSources(Set.copyOf(sources));
         packRepository.reload();
+    }
+
+    @ModifyConstant(method = "createTitle()Ljava/lang/String;", constant = @Constant(stringValue = "Minecraft"))
+    private String brass$changeWindowTitle(String s) {
+        return "Minecraft Brass";
     }
 }
