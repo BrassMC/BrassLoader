@@ -13,9 +13,7 @@ import net.minecraft.server.packs.repository.PackRepository;
 import net.minecraft.server.packs.repository.PackSource;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.nio.file.Path;
@@ -59,11 +57,15 @@ public class MinecraftMixin {
         packRepository.reload();
     }
 
+    @ModifyConstant(method = "createTitle", constant = @Constant(stringValue = "Minecraft"))
+    private String brass$modifyBaseTitle(String s) {
+        return "Minecraft Brass";
+    }
+
     @Inject(at = @At("RETURN"), method = "createTitle()Ljava/lang/String;", cancellable = true)
-    public void brass$changeWindowTitle(CallbackInfoReturnable<String> cir) {
-        String title = cir.getReturnValue();
-        title = title.replaceAll("Minecraft", "Brass MC");
-        title = title.replaceAll("\\*", "");
-        cir.setReturnValue(title);
+    public void brass$removeModdedSymbol(CallbackInfoReturnable<String> cir) {
+        String titleString = cir.getReturnValue();
+        titleString = titleString.replaceAll("\\*", "");
+        cir.setReturnValue(titleString);
     }
 }
