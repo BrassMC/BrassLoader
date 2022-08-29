@@ -1,0 +1,8 @@
+{
+  "brassloader.menu.mods": "Mods",
+  "brassloader.modsList.title": "Mod List",
+  "brassloader.modsList.filter": "Filter",
+  "brassloader.modsList.filter.none": "None",
+  "brassloader.modsList.filter.alphabetical": "Alphabetical",
+  "item.brassloader.beans": "Beans"
+}

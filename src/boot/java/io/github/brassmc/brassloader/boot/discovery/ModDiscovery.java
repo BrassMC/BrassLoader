@@ -35,6 +35,8 @@ public class ModDiscovery implements ITransformationService {
         try {
             final List<SecureJar> mods = new ArrayList<>();
 
+            Files.createDirectories(MODS_FOLDER);
+
             Files.walkFileTree(MODS_FOLDER, Set.of(), 1, new SimpleFileVisitor<>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
@@ -143,10 +145,8 @@ public class ModDiscovery implements ITransformationService {
 
                         return FileVisitResult.CONTINUE;
                     } catch (IOException | ParseException exception) {
-                        exception.printStackTrace();
+                        throw new MetadataParseException(exception, "Metadata(mod.hjson) is invalid for mod: " + file);
                     }
-
-                    return super.visitFile(file, attrs);
                 }
             });
 
