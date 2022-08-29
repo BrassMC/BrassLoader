@@ -14,7 +14,9 @@ import net.minecraft.server.packs.repository.PackSource;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -23,8 +25,6 @@ import java.util.Set;
 
 @Mixin(Minecraft.class)
 public abstract class MinecraftMixin {
-    @Shadow
-    private IntegratedServer server;
 
     @Overwrite
     private UserApiService createUserApiService(YggdrasilAuthenticationService service, GameConfig cfg) {
@@ -59,8 +59,11 @@ public abstract class MinecraftMixin {
         packRepository.reload();
     }
 
-    @Inject(method = "createTitle", at = @At("HEAD"), cancellable = true)
-    private void brassloader$changeWindowTitle(CallbackInfoReturnable<String> ci) {
-        ci.setReturnValue("Minecraft Brass" + SharedConstants.getCurrentVersion().getName() + " " + (server != null && server.isRemote()) ? "Multiplayer" : "Singleplayer");
-    } 
+    @Inject(at = @At("RETURN"), method = "createTitle()Ljava/lang/String;", cancellable = true)
+    public void brass$changeWindowTitle(CallbackInfoReturnable<String> cir) {
+        String title = cir.getReturnValue();
+        title = title.replaceAll("Minecraft", "Brass MC");
+        title = title.replaceAll("\\*", "");
+        cir.setReturnValue(title);
+    }
 }
