@@ -1,6 +1,8 @@
 package io.github.brassmc.brassloader.pack;
 
 import com.google.common.base.Joiner;
+import cpw.mods.jarhandling.SecureJar;
+import io.github.brassmc.brassloader.boot.MinecraftProvider;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.AbstractPackResources;
@@ -14,8 +16,10 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -145,5 +149,24 @@ public class PathResourcePack extends AbstractPackResources {
     @Override
     public String toString() {
         return String.format(Locale.ROOT, "%s: %s", getClass().getName(), getSource());
+    }
+
+    public static final class ForSecureJar extends PathResourcePack {
+        private final SecureJar secureJar;
+
+        public ForSecureJar(String packName, Path path, SecureJar secureJar) {
+            super(packName, path);
+            this.secureJar = secureJar;
+        }
+
+        @Override
+        protected Path resolve(String... paths) {
+            final List<String> others = new ArrayList<>();
+            final var first = paths[0];
+            for (var i = 1; i < paths.length; i++) {
+                others.add(paths[i]);
+            }
+            return secureJar.getPath(first, others.toArray(String[]::new));
+        }
     }
 }

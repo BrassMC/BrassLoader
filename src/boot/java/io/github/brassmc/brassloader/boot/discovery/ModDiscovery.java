@@ -45,6 +45,7 @@ public class ModDiscovery implements ITransformationService {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                     try {
+                        file = file.toAbsolutePath();
                         // Read jar
                         if (!file.toString().endsWith(".jar")) return FileVisitResult.CONTINUE;
                         SecureJar secureJar = SecureJar.from(file);
@@ -79,7 +80,6 @@ public class ModDiscovery implements ITransformationService {
                         String entrypoint = MetadataUtils.getString(jsonObject, "entrypoint", file);
                         String license = MetadataUtils.getStringWithLength(jsonObject, "license", file, 3, 64);
                         String[] mixins = MetadataUtils.getArrayOrString(jsonObject, "mixins", file, false);
-                        
                         // Get and validate the people object
                         JsonValue peopleValue = jsonObject.get("people");
                         if(peopleValue == null)
@@ -145,7 +145,7 @@ public class ModDiscovery implements ITransformationService {
                                 .contact(contact)
                                 .mixins(mixins);
 
-                        ModContainer container = containerBuilder.build(secureJar);
+                        ModContainer container = containerBuilder.build(secureJar, file);
                         MODS.add(container);
 
                         return FileVisitResult.CONTINUE;

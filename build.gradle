@@ -1,5 +1,3 @@
-import io.github.brassmc.bradle.task.DownloadMCTask
-import io.github.brassmc.bradle.task.RemapJarTask
 import java.nio.file.Files
 import java.util.function.Function
 import io.github.brassmc.bradle.util.gson.Library.OS
@@ -11,7 +9,6 @@ plugins {
 
 repositories {
     mavenCentral()
-
     maven {
         name = 'forge'
         url = 'https://maven.minecraftforge.net/'
@@ -60,6 +57,7 @@ dependencies {
 
     boot 'cpw.mods:bootstraplauncher:1.1.2'
     boot "cpw.mods:securejarhandler:$sshVersion"
+    compileOnly "cpw.mods:securejarhandler:$sshVersion"
 
     asm.each {
         boot it
@@ -161,6 +159,22 @@ final var configureRunTask = { JavaExec it, String type ->
     it.group = 'minecraft'
 
     Files.createDirectories(it.workingDir.toPath())
+
+    it.dependsOn(gradle.includedBuild('BrassAPI').task(':jar'))
+    it.doFirst {
+        if (gradle.includedBuild('BrassAPI') === null) return
+        final libsDir = gradle.includedBuild('BrassAPI').projectDir.toPath().resolve('build/libs')
+        Files.list(libsDir)
+                .map { it.toAbsolutePath() }
+                .filter { it.toString().endsWith('.jar') }
+                .max(Comparator.comparing({ Files.getLastModifiedTime(it) }))
+                .ifPresent {
+                    final dest = project.file("run/$type/mods/brassapi.jar").toPath()
+                    Files.createDirectories(dest.parent)
+                    Files.deleteIfExists(dest)
+                    Files.copy(it, dest)
+                }
+    }
 }
 
 tasks.register('runClient', JavaExec) {

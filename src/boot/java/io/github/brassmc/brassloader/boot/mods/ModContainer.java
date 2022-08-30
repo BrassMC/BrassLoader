@@ -8,7 +8,7 @@ import java.nio.file.Path;
 public record ModContainer(@NotNull String modid, @NotNull String name, @NotNull String version,
                            @NotNull String description, @NotNull String entrypoint, @NotNull String license, @NotNull People people,
                            @NotNull String[] mixins, @NotNull Path icon, @NotNull Contact contact,
-                           SecureJar jar) {
+                           SecureJar secureJar, Path jarPath) {
     public static class Builder {
         private final String modid;
         private String name, version, description, entrypoint, license;
@@ -74,8 +74,8 @@ public record ModContainer(@NotNull String modid, @NotNull String name, @NotNull
             return this;
         }
 
-        public ModContainer build(SecureJar jar) {
-            return new ModContainer(modid, name, version, description, entrypoint, license, people, mixins, icon, contact, jar);
+        public ModContainer build(SecureJar secureJar, Path jarPath) {
+            return new ModContainer(modid, name, version, description, entrypoint, license, people, mixins, icon, contact, secureJar, jarPath);
         }
     }
 
