@@ -7,12 +7,12 @@
     "DebugScreenOverlayMixin",
     "MainMixin",
     "MinecraftMixin",
+    "PauseScreenMixin",
     "TitleScreenMixin"
   ],
   "mixins": [
     "BootstrapMixin",
     "MinecraftServerMixin",
-    "PauseScreenMixin",
     "access.PackRepositoryAccess"
   ],
   "minVersion": "${mixinVersion}",
