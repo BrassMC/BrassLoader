@@ -21,14 +21,20 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 @AutoService(ITransformationService.class)
 public class ModDiscovery implements ITransformationService {
-    public static final List<ModContainer> MODS = new ArrayList<>();
+    private static final List<ModContainer> MODS = new ArrayList<>();
+    private static final List<ModContainer> MODS_VIEW = Collections.unmodifiableList(MODS);
 
     private static final Path MODS_FOLDER = Path.of("mods");
+
+    public static List<ModContainer> getMods() {
+        return MODS_VIEW;
+    }
 
     @Override
     public List<Resource> completeScan(IModuleLayerManager layerManager) {
@@ -72,7 +78,8 @@ public class ModDiscovery implements ITransformationService {
                         String description = MetadataUtils.getStringWithLength(jsonObject, "description", file, 4, 2056);
                         String entrypoint = MetadataUtils.getString(jsonObject, "entrypoint", file);
                         String license = MetadataUtils.getStringWithLength(jsonObject, "license", file, 3, 64);
-
+                        String[] mixins = MetadataUtils.getArrayOrString(jsonObject, "mixins", file, false);
+                        
                         // Get and validate the people object
                         JsonValue peopleValue = jsonObject.get("people");
                         if(peopleValue == null)
@@ -86,7 +93,6 @@ public class ModDiscovery implements ITransformationService {
                         String[] animators = MetadataUtils.getArrayOrString(peopleObj, "animators", file);
                         String[] audioEngineers = MetadataUtils.getArrayOrString(peopleObj, "audioEngineers", file);
                         String[] additionalCredits = MetadataUtils.getArrayOrString(peopleObj, "additionalCredits", file, 256);
-
                         // Get optional icon
                         String iconStr = MetadataUtils.getString(jsonObject, "icon", "default.png", file);
                         Path icon = Path.of(iconStr);
@@ -136,9 +142,10 @@ public class ModDiscovery implements ITransformationService {
                                 .entrypoint(entrypoint)
                                 .people(people)
                                 .icon(icon)
-                                .contact(contact);
+                                .contact(contact)
+                                .mixins(mixins);
 
-                        ModContainer container = containerBuilder.build();
+                        ModContainer container = containerBuilder.build(secureJar);
                         MODS.add(container);
 
                         return FileVisitResult.CONTINUE;

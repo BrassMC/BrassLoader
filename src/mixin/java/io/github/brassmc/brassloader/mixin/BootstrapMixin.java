@@ -24,9 +24,9 @@ public class BootstrapMixin {
             method = "bootStrap"
     )
     private static void brass$init(CallbackInfo callback) {
-        Constants.LOGGER.info("Found mods: [" + String.join(", ", ModDiscovery.MODS.stream().map(ModContainer::modid).toArray(String[]::new)) + "]");
+        Constants.LOGGER.info("Found mods: [" + String.join(", ", ModDiscovery.getMods().stream().map(ModContainer::modid).toArray(String[]::new)) + "]");
 
-        ModDiscovery.MODS.forEach(modContainer -> {
+        ModDiscovery.getMods().forEach(modContainer -> {
             String entrypoint = modContainer.entrypoint();
             try {
                 Class<?> mainClass = Class.forName(entrypoint);
