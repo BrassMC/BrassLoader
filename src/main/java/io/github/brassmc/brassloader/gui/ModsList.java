@@ -1,6 +1,7 @@
 package io.github.brassmc.brassloader.gui;
 
 import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import io.github.brassmc.brassloader.boot.discovery.ModDiscovery;
@@ -12,11 +13,18 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import org.apache.commons.lang3.Validate;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -56,7 +64,7 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
     }
 
     public void switchDirection(Button button) {
-        if(this.filterType != FilterType.NONE) {
+        if (this.filterType != FilterType.NONE) {
             this.filterDirection = getFilterDirection().next(this.filterType != FilterType.NONE);
             if (this.filterType == FilterType.ALPHABETICAL) {
                 this.screen.filterButton.setMessage(this.filterDirection == FilterDirection.ASCENDING ? Component.literal("A-Z") : Component.literal("Z-A"));
@@ -72,7 +80,7 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
         this.filterType = getFilterType().next();
         button.setMessage(getFilterType().getName());
 
-        if(this.filterType != FilterType.NONE) {
+        if (this.filterType != FilterType.NONE) {
             if (this.filterDirection == FilterDirection.NONE) {
                 switchDirection(this.screen.direction);
             } else {
@@ -102,7 +110,7 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
     private void filterUsingType() {
         clearEntries();
 
-        if(this.filterDirection == FilterDirection.ASCENDING) {
+        if (this.filterDirection == FilterDirection.ASCENDING) {
             this.currentlyDisplayed = this.filterType.ascendingSorter.apply(this.currentlyDisplayed);
         } else {
             this.currentlyDisplayed = this.filterType.descendingSorter.apply(this.currentlyDisplayed);
@@ -120,7 +128,7 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int keyCode) {
         Optional<GuiEventListener> clicked = getChildAt(mouseX, mouseY);
-        if(clicked.isPresent() && clicked.get() instanceof ModListEntry entry) {
+        if (clicked.isPresent() && clicked.get() instanceof ModListEntry entry) {
             setSelected(entry);
             return super.mouseClicked(mouseX, mouseY, keyCode);
         }
@@ -141,7 +149,7 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
 
     @Override
     protected int getRowTop(int index) {
-        return this.y0 - (int)getScrollAmount() + (index * (this.itemHeight)) + 5;
+        return this.y0 - (int) getScrollAmount() + (index * (this.itemHeight)) + 5;
     }
 
     @Override
@@ -153,7 +161,7 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
     @Override
     public void render(@NotNull PoseStack poseStack, int mouseX, int mouseY, float partialTicks) {
         List<ModContainer> modSummaries = pollMods();
-        if(modSummaries != this.currentlyDisplayed && modSummaries != null) {
+        if (modSummaries != this.currentlyDisplayed && modSummaries != null) {
             handleNewMods(currentlyDisplayed);
         }
 
@@ -166,7 +174,7 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
         renderTopAndBottom(tesselator, buffer);
         renderScrollbar(tesselator, buffer);
 
-        HoveredProvider<ModsList.ModListEntry> access = (HoveredProvider<ModsList.ModListEntry>)this;
+        HoveredProvider<ModsList.ModListEntry> access = (HoveredProvider<ModsList.ModListEntry>) this;
         access.brass$setHovered(this.isMouseOver(mouseX, mouseY) ? this.getEntryAtPosition(mouseX, mouseY) : null);
         RenderSystem.enableTexture();
         RenderSystem.disableBlend();
@@ -180,7 +188,7 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
         int height = this.itemHeight - 4;
         int count = getItemCount();
 
-        for(int index = 0; index < count; ++index) {
+        for (int index = 0; index < count; ++index) {
             int top = getRowTop(index);
             int bottom = top + this.itemHeight;
             if (bottom >= this.y0 && top <= this.y1) {
@@ -210,12 +218,12 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
 
     @Override
     public @NotNull Optional<GuiEventListener> getChildAt(double mouseX, double mouseY) {
-        if(mouseX < x0 || mouseX > x1 || mouseY < y0 || mouseY > y1)
+        if (mouseX < x0 || mouseX > x1 || mouseY < y0 || mouseY > y1)
             return super.getChildAt(mouseX, mouseY);
 
-        for(int index = 0; index < getItemCount(); index++) {
+        for (int index = 0; index < getItemCount(); index++) {
             ModListEntry entry = getEntry(index);
-            if(mouseY > getRowTop(index) && mouseY < getRowTop(index) + this.itemHeight) {
+            if (mouseY > getRowTop(index) && mouseY < getRowTop(index) + this.itemHeight) {
                 return Optional.of(entry);
             }
         }
@@ -232,10 +240,10 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
         RenderSystem.setShaderTexture(0, GuiComponent.BACKGROUND_LOCATION);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-        buffer.vertex(this.x0, this.y1, 0.0).uv((float)this.x0 / 32.0F, (float)(this.y1 + (int)this.getScrollAmount()) / 32.0F).color(32, 32, 32, 255).endVertex();
-        buffer.vertex(this.x1, this.y1, 0.0).uv((float)this.x1 / 32.0F, (float)(this.y1 + (int)this.getScrollAmount()) / 32.0F).color(32, 32, 32, 255).endVertex();
-        buffer.vertex(this.x1, this.y0, 0.0).uv((float)this.x1 / 32.0F, (float)(this.y0 + (int)this.getScrollAmount()) / 32.0F).color(32, 32, 32, 255).endVertex();
-        buffer.vertex(this.x0, this.y0, 0.0).uv((float)this.x0 / 32.0F, (float)(this.y0 + (int)this.getScrollAmount()) / 32.0F).color(32, 32, 32, 255).endVertex();
+        buffer.vertex(this.x0, this.y1, 0.0).uv((float) this.x0 / 32.0F, (float) (this.y1 + (int) this.getScrollAmount()) / 32.0F).color(32, 32, 32, 255).endVertex();
+        buffer.vertex(this.x1, this.y1, 0.0).uv((float) this.x1 / 32.0F, (float) (this.y1 + (int) this.getScrollAmount()) / 32.0F).color(32, 32, 32, 255).endVertex();
+        buffer.vertex(this.x1, this.y0, 0.0).uv((float) this.x1 / 32.0F, (float) (this.y0 + (int) this.getScrollAmount()) / 32.0F).color(32, 32, 32, 255).endVertex();
+        buffer.vertex(this.x0, this.y0, 0.0).uv((float) this.x0 / 32.0F, (float) (this.y0 + (int) this.getScrollAmount()) / 32.0F).color(32, 32, 32, 255).endVertex();
         tesselator.end();
     }
 
@@ -245,14 +253,14 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
         RenderSystem.enableDepthTest();
         RenderSystem.depthFunc(519);
         buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-        buffer.vertex(this.x0, this.y0, -100.0).uv(0.0F, (float)this.y0 / 32.0F).color(64, 64, 64, 255).endVertex();
-        buffer.vertex((this.x0 + this.width), this.y0, -100.0).uv((float)this.width / 32.0F, (float)this.y0 / 32.0F).color(64, 64, 64, 255).endVertex();
-        buffer.vertex((this.x0 + this.width), 0.0, -100.0).uv((float)this.width / 32.0F, 0.0F).color(64, 64, 64, 255).endVertex();
+        buffer.vertex(this.x0, this.y0, -100.0).uv(0.0F, (float) this.y0 / 32.0F).color(64, 64, 64, 255).endVertex();
+        buffer.vertex((this.x0 + this.width), this.y0, -100.0).uv((float) this.width / 32.0F, (float) this.y0 / 32.0F).color(64, 64, 64, 255).endVertex();
+        buffer.vertex((this.x0 + this.width), 0.0, -100.0).uv((float) this.width / 32.0F, 0.0F).color(64, 64, 64, 255).endVertex();
         buffer.vertex(this.x0, 0.0, -100.0).uv(0.0F, 0.0F).color(64, 64, 64, 255).endVertex();
-        buffer.vertex(this.x0, this.height, -100.0).uv(0.0F, (float)this.height / 32.0F).color(64, 64, 64, 255).endVertex();
-        buffer.vertex((this.x0 + this.width), this.height, -100.0).uv((float)this.width / 32.0F, (float)this.height / 32.0F).color(64, 64, 64, 255).endVertex();
-        buffer.vertex((this.x0 + this.width), this.y1, -100.0).uv((float)this.width / 32.0F, (float)this.y1 / 32.0F).color(64, 64, 64, 255).endVertex();
-        buffer.vertex(this.x0, this.y1, -100.0).uv(0.0F, (float)this.y1 / 32.0F).color(64, 64, 64, 255).endVertex();
+        buffer.vertex(this.x0, this.height, -100.0).uv(0.0F, (float) this.height / 32.0F).color(64, 64, 64, 255).endVertex();
+        buffer.vertex((this.x0 + this.width), this.height, -100.0).uv((float) this.width / 32.0F, (float) this.height / 32.0F).color(64, 64, 64, 255).endVertex();
+        buffer.vertex((this.x0 + this.width), this.y1, -100.0).uv((float) this.width / 32.0F, (float) this.y1 / 32.0F).color(64, 64, 64, 255).endVertex();
+        buffer.vertex(this.x0, this.y1, -100.0).uv(0.0F, (float) this.y1 / 32.0F).color(64, 64, 64, 255).endVertex();
         tesselator.end();
         RenderSystem.depthFunc(515);
         RenderSystem.disableDepthTest();
@@ -288,9 +296,9 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
         if (maxScroll > 0) {
             RenderSystem.disableTexture();
             RenderSystem.setShader(GameRenderer::getPositionColorShader);
-            int clampedMax = (int)((float)((this.y1 - this.y0) * (this.y1 - this.y0)) / (float)this.getMaxPosition());
+            int clampedMax = (int) ((float) ((this.y1 - this.y0) * (this.y1 - this.y0)) / (float) this.getMaxPosition());
             clampedMax = Mth.clamp(clampedMax, 32, this.y1 - this.y0 - 8);
-            int relativeAmount = (int)this.getScrollAmount() * (this.y1 - this.y0 - clampedMax) / maxScroll + this.y0;
+            int relativeAmount = (int) this.getScrollAmount() * (this.y1 - this.y0 - clampedMax) / maxScroll + this.y0;
             if (relativeAmount < this.y0) {
                 relativeAmount = this.y0;
             }
@@ -338,7 +346,7 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
     }
 
     private void handleNewMods(@Nullable List<ModContainer> ModContainerList) {
-        if(ModContainerList == null) {
+        if (ModContainerList == null) {
             fillLoadingMods();
         } else {
             fillMods(this.filter);
@@ -354,7 +362,7 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
     }
 
     public void updateFilter(String str) {
-        if(this.currentlyDisplayed != null && !str.equals(this.filter)) {
+        if (this.currentlyDisplayed != null && !str.equals(this.filter)) {
             this.fillMods(str);
         }
 
@@ -367,14 +375,14 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
         this.clearEntries();
         filter = filter.toLowerCase(Locale.ROOT);
 
-        if(this.currentlyDisplayed == null) {
+        if (this.currentlyDisplayed == null) {
             this.currentlyDisplayed = new ArrayList<>();
         } else {
             this.currentlyDisplayed.clear();
         }
 
         for (ModContainer ModContainer : this.items) {
-            if(matchesFilter(filter, ModContainer)) {
+            if (matchesFilter(filter, ModContainer)) {
                 addEntry(new ModListEntry(this, ModContainer));
                 this.currentlyDisplayed.add(ModContainer);
             }
@@ -396,7 +404,9 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
         private final ModsListScreen screen;
         private final ModContainer mod;
 
-        public ModListEntry(ModsList list,  ModContainer mod) {
+        private static final ResourceLocation UNKNOWN_ICON = new ResourceLocation("textures/misc/unknown_pack.png");
+
+        public ModListEntry(ModsList list, ModContainer mod) {
             this.minecraft = list.minecraft;
             this.screen = list.screen;
             this.mod = mod;
@@ -407,11 +417,32 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
             return Component.translatable("brassloader.narration.modList.entry", this.mod.name());
         }
 
+        public @NotNull Path getModRootPath() {
+            // TODO: get root path of mod
+            return Paths.get("");
+        }
+
+        public ResourceLocation modIconToTexture(Path iconPath) {
+            try {
+                try (NativeImage nativeImage = NativeImage.read(Files.newInputStream(getModRootPath().resolve(iconPath)))) {
+                    Validate.validState(nativeImage.getHeight() == nativeImage.getWidth(), "Mod icon must be square!");
+                    ResourceLocation iconLocation = new ResourceLocation("brass", this.mod.modid() + "_icon");
+                    Minecraft.getInstance().getTextureManager().register(iconLocation, new DynamicTexture(nativeImage));
+                    return iconLocation;
+                }
+            } catch (IOException e) {
+//                e.printStackTrace();
+            }
+            return UNKNOWN_ICON;
+        }
+
         @Override
         public void render(@NotNull PoseStack poseStack, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTicks) {
-            //RenderSystem.setShader(GameRenderer::getPositionTexShader);
-            //RenderSystem.setShaderTexture(0, this.mod.icon());
-            //blit(poseStack, left + height / 2 - 12, top + height / 2 - 12, 0, 0, 24, 24, 24, 24);
+            RenderSystem.setShader(GameRenderer::getPositionTexShader);
+
+            ResourceLocation iconLocation = modIconToTexture(this.mod.icon());
+            RenderSystem.setShaderTexture(0, iconLocation);
+            blit(poseStack, left + height / 2 - 12, top + height / 2 - 12, 0, 0, 24, 24, 24, 24);
 
             this.minecraft.font.draw(
                     poseStack,
@@ -451,23 +482,23 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
 
         public FilterDirection next() {
             int ordinal = ordinal();
-            if(ordinal + 1 < values().length)
+            if (ordinal + 1 < values().length)
                 return values()[ordinal + 1];
             return values()[0];
         }
 
         public FilterDirection next(boolean skipNone) {
-            if(!skipNone) {
+            if (!skipNone) {
                 return next();
             }
 
             int ordinal = ordinal();
 
-            if(ordinal + 1 == FilterDirection.NONE.ordinal()) {
+            if (ordinal + 1 == FilterDirection.NONE.ordinal()) {
                 ordinal++;
             }
 
-            if(ordinal + 1 < values().length)
+            if (ordinal + 1 < values().length)
                 return values()[ordinal + 1];
             return values()[0];
         }
@@ -507,7 +538,7 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
 
         public FilterType next() {
             int ordinal = ordinal();
-            if(ordinal + 1 < values().length)
+            if (ordinal + 1 < values().length)
                 return values()[ordinal + 1];
             return values()[0];
         }
