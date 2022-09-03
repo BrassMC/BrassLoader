@@ -403,8 +403,9 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
         private final Minecraft minecraft;
         private final ModsListScreen screen;
         private final ModContainer mod;
+        private ResourceLocation iconLocation;
 
-        private static final ResourceLocation UNKNOWN_ICON = new ResourceLocation("textures/misc/unknown_pack.png");
+        private static final ResourceLocation FALLBACK_ICON = new ResourceLocation("textures/misc/unknown_pack.png");
 
         public ModListEntry(ModsList list, ModContainer mod) {
             this.minecraft = list.minecraft;
@@ -426,21 +427,23 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
             try {
                 try (NativeImage nativeImage = NativeImage.read(Files.newInputStream(getModRootPath().resolve(iconPath)))) {
                     Validate.validState(nativeImage.getHeight() == nativeImage.getWidth(), "Mod icon must be square!");
-                    ResourceLocation iconLocation = new ResourceLocation("brass", this.mod.modid() + "_icon");
-                    Minecraft.getInstance().getTextureManager().register(iconLocation, new DynamicTexture(nativeImage));
-                    return iconLocation;
+                    ResourceLocation resourceLocation = new ResourceLocation("brass", this.mod.modid() + "_icon");
+                    Minecraft.getInstance().getTextureManager().register(resourceLocation, new DynamicTexture(nativeImage));
+                    return resourceLocation;
                 }
             } catch (IOException e) {
-//                e.printStackTrace();
+                e.printStackTrace();
             }
-            return UNKNOWN_ICON;
+            return FALLBACK_ICON;
         }
 
         @Override
         public void render(@NotNull PoseStack poseStack, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTicks) {
             RenderSystem.setShader(GameRenderer::getPositionTexShader);
 
-            ResourceLocation iconLocation = modIconToTexture(this.mod.icon());
+            if (this.iconLocation == null) {
+                this.iconLocation = modIconToTexture(this.mod.icon());
+            }
             RenderSystem.setShaderTexture(0, iconLocation);
             blit(poseStack, left + height / 2 - 12, top + height / 2 - 12, 0, 0, 24, 24, 24, 24);
 
