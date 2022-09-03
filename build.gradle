@@ -1,6 +1,7 @@
+import io.github.brassmc.bradle.util.gson.Library.OS
+
 import java.nio.file.Files
 import java.util.function.Function
-import io.github.brassmc.bradle.util.gson.Library.OS
 
 plugins {
     id 'java'
@@ -77,8 +78,8 @@ dependencies {
     minecraftRuntime 'org.hjson:hjson:3.0.0'
     minecraftRuntime 'commons-validator:commons-validator:1.7'
 
-    bootCompileOnly group:'com.google.auto.service', name:'auto-service', version:'1.0.1'
-    bootAnnotationProcessor group:'com.google.auto.service', name:'auto-service', version:'1.0.1'
+    bootCompileOnly group: 'com.google.auto.service', name: 'auto-service', version: '1.0.1'
+    bootAnnotationProcessor group: 'com.google.auto.service', name: 'auto-service', version: '1.0.1'
 
     compileOnly sourceSets.boot.output
 

@@ -24,7 +24,6 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -337,7 +336,7 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
     // TODO: Get from mod discovery
     private CompletableFuture<List<ModContainer>> loadMods() {
         List<ModContainer> mods = new ArrayList<>();
-        ModDiscovery.MODS.forEach(mod -> {
+        ModDiscovery.getMods().forEach(mod -> {
             mods.add(mod);
             this.items.add(mod);
         });
@@ -418,14 +417,9 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
             return Component.translatable("brassloader.narration.modList.entry", this.mod.name());
         }
 
-        public @NotNull Path getModRootPath() {
-            // TODO: get root path of mod
-            return Paths.get("");
-        }
-
         public ResourceLocation modIconToTexture(Path iconPath) {
             try {
-                try (NativeImage nativeImage = NativeImage.read(Files.newInputStream(getModRootPath().resolve(iconPath)))) {
+                try (NativeImage nativeImage = NativeImage.read(Files.newInputStream(this.mod.secureJar().getPath(iconPath.toString())))) {
                     Validate.validState(nativeImage.getHeight() == nativeImage.getWidth(), "Mod icon must be square!");
                     ResourceLocation resourceLocation = new ResourceLocation("brass", this.mod.modid() + "_icon");
                     Minecraft.getInstance().getTextureManager().register(resourceLocation, new DynamicTexture(nativeImage));
