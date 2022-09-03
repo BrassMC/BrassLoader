@@ -4,6 +4,7 @@ import com.google.common.collect.Sets;
 import com.mojang.authlib.minecraft.UserApiService;
 import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
 import io.github.brassmc.brassloader.boot.MinecraftProvider;
+import io.github.brassmc.brassloader.boot.discovery.ModDiscovery;
 import io.github.brassmc.brassloader.mixin.access.PackRepositoryAccess;
 import io.github.brassmc.brassloader.pack.PathResourcePack;
 import net.minecraft.client.Minecraft;
@@ -14,11 +15,10 @@ import net.minecraft.server.packs.repository.PackSource;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Constant;
+import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 
 @Mixin(Minecraft.class)
@@ -35,24 +35,28 @@ public class MinecraftMixin {
     private void brass$addResources(PackRepository packRepository) {
         final var access = (PackRepositoryAccess) packRepository;
         final var sources = Sets.newHashSet(access.getSources());
+        // TODO load on servers as well
         sources.add((packList, factory) -> {
-            final Pack packInfo = Pack.create("brass_resources", true, () -> new PathResourcePack(
-                            "brass", MinecraftProvider.OWN_PATH.resolve("META-INF/jars/brass.jar")
-                    ) {
-                        @Override
-                        protected Path resolve(String... paths) {
-                            final List<String> others = new ArrayList<>();
-                            final var first = paths[0];
-                            for (var i = 1; i < paths.length; i++) {
-                                others.add(paths[i]);
-                            }
-                            return MinecraftProvider.BRASS_JAR.getPath(first, others.toArray(String[]::new));
-                        }
-                    },
-                    factory, Pack.Position.BOTTOM, PackSource.DEFAULT);
-            packList.accept(packInfo);
+            final Pack brassPack = Pack.create("brass_resources", true, () -> new PathResourcePack.ForSecureJar(
+                            "brass", MinecraftProvider.OWN_PATH.resolve("META-INF/jars/brass.secureJar"),
+                                MinecraftProvider.BRASS_JAR
+                    ),
+                    factory, Pack.Position.TOP, PackSource.DEFAULT);
+            packList.accept(brassPack);
+            ModDiscovery.getMods().forEach(mod -> {
+                final Pack packInfo = Pack.create(mod.modid() + "_resources", true, () -> new PathResourcePack.ForSecureJar(
+                                "brass", mod.jarPath(), mod.secureJar()
+                        ),
+                        factory, Pack.Position.TOP, PackSource.DEFAULT);
+                packList.accept(packInfo);
+            });
         });
         access.setSources(Set.copyOf(sources));
         packRepository.reload();
+    }
+
+    @ModifyConstant(method = "createTitle()Ljava/lang/String;", constant = @Constant(stringValue = "Minecraft"))
+    private String brass$changeWindowTitle(String s) {
+        return "Minecraft Brass";
     }
 }

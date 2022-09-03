@@ -1,19 +1,21 @@
 package io.github.brassmc.brassloader.boot.mods;
 
-import org.apache.commons.lang3.concurrent.TimedSemaphore;
+import cpw.mods.jarhandling.SecureJar;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 
 public record ModContainer(@NotNull String modid, @NotNull String name, @NotNull String version,
                            @NotNull String description, @NotNull String entrypoint, @NotNull String license, @NotNull People people,
-                           @NotNull Path icon, @NotNull Contact contact) {
+                           @NotNull String[] mixins, @NotNull Path icon, @NotNull Contact contact,
+                           SecureJar secureJar, Path jarPath) {
     public static class Builder {
         private final String modid;
         private String name, version, description, entrypoint, license;
         private Path icon;
         private Contact contact;
         private People people;
+        private String[] mixins = new String[] {};
 
         public Builder(String modid) {
             this.modid = modid;
@@ -67,8 +69,13 @@ public record ModContainer(@NotNull String modid, @NotNull String name, @NotNull
             return people(people.build());
         }
 
-        public ModContainer build() {
-            return new ModContainer(modid, name, version, description, entrypoint, license, people, icon, contact);
+        public Builder mixins(String... mixins) {
+            this.mixins = mixins;
+            return this;
+        }
+
+        public ModContainer build(SecureJar secureJar, Path jarPath) {
+            return new ModContainer(modid, name, version, description, entrypoint, license, people, mixins, icon, contact, secureJar, jarPath);
         }
     }
 

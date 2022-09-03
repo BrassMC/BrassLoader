@@ -19,10 +19,12 @@ import java.util.Map;
 
 public class InformationPanel {
 
-    static final Map<String, Renderer> PANELS = new HashMap<>() {{ this.put("brass", createDefaultRenderer()); }};
+    static final Map<String, Renderer> PANELS = new HashMap<>() {{
+        this.put("brass", createDefaultRenderer());
+    }};
 
     public static void registerPanel(@Nonnull String modid, Renderer renderer) {
-        if (modid == null || ModDiscovery.MODS.stream().noneMatch(c -> c.modid().equals(modid)))
+        if (modid == null || ModDiscovery.getMods().stream().noneMatch(c -> c.modid().equals(modid)))
             throw new IllegalArgumentException("Attempted to create information panel with null, empty or non-present modid.");
         if (renderer != null)
             PANELS.put(modid, renderer);

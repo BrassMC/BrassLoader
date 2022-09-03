@@ -3,6 +3,7 @@ package io.github.brassmc.brassloader.boot.target;
 import cpw.mods.modlauncher.api.ILaunchHandlerService;
 import cpw.mods.modlauncher.api.ITransformingClassLoaderBuilder;
 import cpw.mods.modlauncher.api.ServiceRunner;
+import io.github.brassmc.brassloader.boot.discovery.ModDiscovery;
 import io.github.brassmc.brassloader.boot.util.Environment;
 import org.spongepowered.asm.mixin.Mixins;
 
@@ -29,6 +30,7 @@ public abstract class BaseLaunchTarget implements ILaunchHandlerService {
     public ServiceRunner launchService(String[] arguments, ModuleLayer gameLayer) {
         return () -> {
             Mixins.addConfiguration("brassloader.mixins.json");
+            ModDiscovery.getMods().forEach(it -> Mixins.addConfigurations(it.mixins()));
             Class<?> mainClass = Class.forName(gameLayer.findModule("minecraft").orElseThrow(),getMainClassName());
             Method mainMethod = mainClass.getMethod("main", String[].class);
             mainMethod.invoke(null, (Object)arguments);
