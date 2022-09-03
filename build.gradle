@@ -1,28 +1,23 @@
-import io.github.brassmc.bradle.task.DownloadMCTask
-import io.github.brassmc.bradle.task.RemapJarTask
 import java.nio.file.Files
 import java.util.function.Function
 import io.github.brassmc.bradle.util.gson.Library.OS
 
 plugins {
     id 'java'
-    id 'io.github.brassmc.bradle' version '0.4.1'
+    id 'io.github.brassmc.bradle' version '0.6.0'
 }
 
 repositories {
     mavenCentral()
-
     maven {
         name = 'forge'
         url = 'https://maven.minecraftforge.net/'
-    }
-    flatDir {
-        dir(project.file('run'))
     }
 }
 
 minecraft {
     minecraftVersion = '1.19.1'
+    mappings 'official', '1.19.1'
 }
 
 sourceSets {
@@ -31,6 +26,9 @@ sourceSets {
 }
 
 configurations {
+    mcServer
+    mcClient
+
     boot
     bootImplementation.extendsFrom(boot)
 
@@ -40,6 +38,9 @@ configurations {
     bootImplementation.extendsFrom(minecraftRuntime)
     bootImplementation.extendsFrom(minecraftClientRuntime)
     mixinImplementation.extendsFrom(minecraftClientRuntime)
+
+    mixinCompileOnly.extendsFrom(mcClient)
+    compileOnly.extendsFrom(mcClient)
 }
 
 final asm = [
@@ -56,14 +57,15 @@ dependencies {
 
     boot 'cpw.mods:bootstraplauncher:1.1.2'
     boot "cpw.mods:securejarhandler:$sshVersion"
+    compileOnly "cpw.mods:securejarhandler:$sshVersion"
 
     asm.each {
         boot it
         bootCompileOnly it
     }
 
-    mixinCompileOnly 'net.minecraft.blank:client_mapped:1.19.1'
-    compileOnly 'net.minecraft.blank:client_mapped:1.19.1'
+    mcClient bradle.deobf('net.minecraft:client:1.19.1:joined')
+    mcServer bradle.deobf('net.minecraft:server:1.19.1:joined', 'server')
 
     bootCompileOnly "cpw.mods:securejarhandler:$sshVersion"
     mixinCompileOnly "cpw.mods:securejarhandler:$sshVersion"
@@ -97,27 +99,6 @@ java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(17))
     }
-}
-
-tasks.create('downloadMcClient', DownloadMCTask) {
-    group = 'minecraft'
-    side = 'client'
-    output = project.file('run/client.jar')
-}
-tasks.create('remapMcClient', RemapJarTask) {
-    group = 'minecraft'
-    from(downloadMcClient)
-    output.set(project.file('run/client_mapped-1.19.1.jar'))
-}
-
-tasks.create('downloadMcServer', DownloadMCTask) {
-    group = 'minecraft'
-    side = 'server'
-    output = project.file('run/server.jar')
-}
-tasks.create('remapMcServer', RemapJarTask) {
-    group = 'minecraft'
-    from(downloadMcServer)
 }
 
 jar {
@@ -178,12 +159,28 @@ final var configureRunTask = { JavaExec it, String type ->
     it.group = 'minecraft'
 
     Files.createDirectories(it.workingDir.toPath())
+
+    it.dependsOn(gradle.includedBuild('BrassAPI').task(':jar'))
+    it.doFirst {
+        if (gradle.includedBuild('BrassAPI') === null) return
+        final libsDir = gradle.includedBuild('BrassAPI').projectDir.toPath().resolve('build/libs')
+        Files.list(libsDir)
+                .map { it.toAbsolutePath() }
+                .filter { it.toString().endsWith('.jar') }
+                .max(Comparator.comparing({ Files.getLastModifiedTime(it) }))
+                .ifPresent {
+                    final dest = project.file("run/$type/mods/brassapi.jar").toPath()
+                    Files.createDirectories(dest.parent)
+                    Files.deleteIfExists(dest)
+                    Files.copy(it, dest)
+                }
+    }
 }
 
-tasks.create('runClient', JavaExec) {
-    setWorkingDir(project.file('run/client'))
-    jvmArgs(
-            "-Dbrassloader.mclocation=${project.file('run/client_mapped-1.19.1.jar')}"
+tasks.register('runClient', JavaExec) {
+    it.setWorkingDir(project.file('run/client'))
+    it.jvmArgs(
+            "-Dbrassloader.mclocation=${configurations.mcClient.resolve().stream().findFirst().orElseThrow()}"
     )
     args(
             '--launchTarget', 'brass:mcclient',
@@ -194,12 +191,12 @@ tasks.create('runClient', JavaExec) {
     )
     configureRunTask(it, 'client')
 }
-tasks.create('runServer', JavaExec) {
-    setWorkingDir(project.file('run/server'))
-    jvmArgs(
-            "-Dbrassloader.mclocation=${project.file('run/server_mapped.jar')}"
+tasks.register('runServer', JavaExec) {
+    it.setWorkingDir(project.file('run/server'))
+    it.jvmArgs(
+            "-Dbrassloader.mclocation=${configurations.mcServer.resolve().stream().findFirst().orElseThrow()}"
     )
-    args(
+    it.args(
             '--launchTarget', 'brass:mcserver',
     )
     configureRunTask(it, 'server')

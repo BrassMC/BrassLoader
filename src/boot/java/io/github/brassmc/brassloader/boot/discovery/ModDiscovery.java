@@ -21,14 +21,20 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 @AutoService(ITransformationService.class)
 public class ModDiscovery implements ITransformationService {
-    public static final List<ModContainer> MODS = new ArrayList<>();
+    private static final List<ModContainer> MODS = new ArrayList<>();
+    private static final List<ModContainer> MODS_VIEW = Collections.unmodifiableList(MODS);
 
     private static final Path MODS_FOLDER = Path.of("mods");
+
+    public static List<ModContainer> getMods() {
+        return MODS_VIEW;
+    }
 
     @Override
     public List<Resource> completeScan(IModuleLayerManager layerManager) {
@@ -41,6 +47,7 @@ public class ModDiscovery implements ITransformationService {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                     try {
+                        file = file.toAbsolutePath();
                         // Read jar
                         if (!file.toString().endsWith(".jar")) return FileVisitResult.CONTINUE;
                         SecureJar secureJar = SecureJar.from(file);
@@ -57,13 +64,24 @@ public class ModDiscovery implements ITransformationService {
                         String modid = MetadataUtils.getStringWithLength(jsonObject, "modId", file, 3, 20);
                         if(!MetadataUtils.isValidModid(modid))
                             throw new InvalidModidException("Provided modid(" + modid + ") in mod(" + file + ") must match the expression: a-z0-9/._-");
+                        if(ModDiscovery.MODS.stream().anyMatch(c -> c.modid().equals(modid)))
+                            throw new InvalidModidException("Provided modid(" + modid + ") in mod(" + file + ") is already present, duplicate or present file must be removed.");
 
                         String name = MetadataUtils.getStringWithLength(jsonObject, "name", file, 4, 32);
+                        StringBuilder duplicateModid = new StringBuilder();
+                        if (ModDiscovery.MODS.stream().anyMatch(c -> {
+                            if (c.name().equals(name)) {
+                                duplicateModid.append(c.modid());
+                                return true;
+                            }
+                            return false;
+                        }))
+                            throw new MetadataParseException("Display name of mod(" + modid + ") is already present in mod(" + duplicateModid + "), duplicate or present file must be removed.");
                         String version = MetadataUtils.getStringWithLength(jsonObject, "version", file, 1, 64);
                         String description = MetadataUtils.getStringWithLength(jsonObject, "description", file, 4, 2056);
                         String entrypoint = MetadataUtils.getString(jsonObject, "entrypoint", file);
                         String license = MetadataUtils.getStringWithLength(jsonObject, "license", file, 3, 64);
-
+                        String[] mixins = MetadataUtils.getArrayOrString(jsonObject, "mixins", file, false);
                         // Get and validate the people object
                         JsonValue peopleValue = jsonObject.get("people");
                         if(peopleValue == null)
@@ -77,7 +95,6 @@ public class ModDiscovery implements ITransformationService {
                         String[] animators = MetadataUtils.getArrayOrString(peopleObj, "animators", file);
                         String[] audioEngineers = MetadataUtils.getArrayOrString(peopleObj, "audioEngineers", file);
                         String[] additionalCredits = MetadataUtils.getArrayOrString(peopleObj, "additionalCredits", file, 256);
-
                         // Get optional icon
                         String iconStr = MetadataUtils.getString(jsonObject, "icon", "default.png", file);
                         Path icon = Path.of(iconStr);
@@ -127,9 +144,10 @@ public class ModDiscovery implements ITransformationService {
                                 .entrypoint(entrypoint)
                                 .people(people)
                                 .icon(icon)
-                                .contact(contact);
+                                .contact(contact)
+                                .mixins(mixins);
 
-                        ModContainer container = containerBuilder.build();
+                        ModContainer container = containerBuilder.build(secureJar, file);
                         MODS.add(container);
 
                         return FileVisitResult.CONTINUE;

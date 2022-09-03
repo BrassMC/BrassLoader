@@ -7,11 +7,11 @@
     "DebugScreenOverlayMixin",
     "MainMixin",
     "MinecraftMixin",
-    "TitleScreenMixin",
+    "PauseScreenMixin",
+    "TitleScreenMixin"
     "AbstractSelectionListMixin"
   ],
   "mixins": [
-    "ItemsMixin",
     "BootstrapMixin",
     "MinecraftServerMixin",
     "PauseScreenMixin",

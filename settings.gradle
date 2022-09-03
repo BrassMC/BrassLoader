@@ -8,3 +8,5 @@ pluginManagement {
 }
 
 rootProject.name = 'BrassLoader'
+if (new File(rootDir, 'BrassAPI').exists())
+    includeBuild './BrassAPI'
