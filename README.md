@@ -7,7 +7,7 @@ BrassLoader is **The** next generation of Minecraft Mod Loaders, It primarly loa
 BrassLoader was started by the great Turtle, [TurtyWurty](https://www.youtube.com/TurtyWurty)
 
 ## Is there a discord server for BrassLoader?
-The official Server for BrassLoader is located in Turty's Server [HERE](https://discord.gg/jCTnnhxc7J)
+The official Server for BrassLoader is located in Turty's Server [HERE](https://discord.gg/BAYB3A38wn)
 
 ## Can I help with BrassLoader?
 Of course! BrassLoader is for anyone to help develop! Its kinda why its open source
