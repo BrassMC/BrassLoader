@@ -7,7 +7,6 @@ import org.spongepowered.asm.mixin.injection.ModifyConstant;
 
 @Mixin(MinecraftServer.class)
 public class MinecraftServerMixin {
-
     @ModifyConstant(method = "getServerModName", constant = @Constant(stringValue = "vanilla"))
     public String brass$modifyServerBrandName(String original) {
         return "brass";

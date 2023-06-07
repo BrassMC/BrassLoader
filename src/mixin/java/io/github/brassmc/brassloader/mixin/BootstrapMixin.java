@@ -4,6 +4,7 @@ import io.github.brassmc.brassloader.boot.discovery.InvalidEntrypointException;
 import io.github.brassmc.brassloader.boot.discovery.ModDiscovery;
 import io.github.brassmc.brassloader.boot.mods.ModContainer;
 import io.github.brassmc.brassloader.boot.util.Constants;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.Bootstrap;
 import org.apache.commons.lang3.time.StopWatch;
 import org.spongepowered.asm.mixin.Mixin;
@@ -15,12 +16,12 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.TimeUnit;
 
-@Mixin(Bootstrap.class)
+@Mixin(BuiltInRegistries.class)
 public class BootstrapMixin {
     @Inject(
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/core/Registry;freezeBuiltins()V"
+                    target = "Lnet/minecraft/core/registries/BuiltInRegistries;freeze()V"
             ),
             method = "bootStrap"
     )

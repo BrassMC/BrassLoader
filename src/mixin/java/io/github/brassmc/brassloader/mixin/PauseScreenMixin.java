@@ -2,7 +2,7 @@ package io.github.brassmc.brassloader.mixin;
 
 import io.github.brassmc.brassloader.gui.ModsListScreen;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.Widget;
+import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.client.gui.screens.PauseScreen;
@@ -25,18 +25,21 @@ public class PauseScreenMixin extends Screen {
 
     @Inject(method = "createPauseMenu", at = @At("RETURN"))
     private void brass$addModsButton(CallbackInfo ci) {
-        addRenderableWidget(new Button(this.width / 2 - 102, this.height / 4 + 104, 204, 20,
-                Component.translatable("brassloader.menu.mods"), button -> {
-            assert minecraft != null;
-            minecraft.setScreen(new ModsListScreen(this));
-        }));
+        addRenderableWidget(Button.builder(Component.translatable("brassloader.menu.mods"), button -> {
+                    if(minecraft != null) {
+                        minecraft.setScreen(new ModsListScreen(this));
+                    }
+                })
+                .pos(this.width / 2 - 102, this.height / 4 + 104)
+                .size(204, 20)
+                .build());
     }
 
     @Override
-    protected <T extends GuiEventListener & Widget & NarratableEntry> @NotNull T addRenderableWidget(@NotNull T widget) {
+    protected <T extends GuiEventListener & Renderable & NarratableEntry> @NotNull T addRenderableWidget(@NotNull T widget) {
         if (widget instanceof Button button && button.getMessage() instanceof MutableComponent mutableComponent && mutableComponent.getContents() instanceof TranslatableContents contents) {
             if (contents.getKey().equals("menu.returnToMenu") || contents.getKey().equals("menu.disconnect")) {
-                button.y += 24;
+                button.setY(button.getY() + 24);
             }
         }
 

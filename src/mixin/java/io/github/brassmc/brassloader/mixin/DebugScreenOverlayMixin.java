@@ -8,7 +8,6 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(DebugScreenOverlay.class)
 public class DebugScreenOverlayMixin {
-
     @Redirect(method = "getGameInformation", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;getLaunchedVersion()Ljava/lang/String;"))
     private String brass$getLaunchedVersion(Minecraft instance) {
         String brassApiVersion = "0.0.1";

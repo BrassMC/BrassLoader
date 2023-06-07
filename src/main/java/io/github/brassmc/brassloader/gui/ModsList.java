@@ -3,6 +3,7 @@ package io.github.brassmc.brassloader.gui;
 import com.mojang.blaze3d.vertex.PoseStack;
 import io.github.brassmc.brassloader.boot.mods.ModSummary;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.network.chat.Component;
 
@@ -109,8 +110,8 @@ public class ModsList extends ObjectSelectionList<ModsList.ModListEntry> {
         }
 
         @Override
-        public void render(PoseStack poseStack, int i, int i1, int i2, int i3, int i4, int i5, int i6, boolean b, float v) {
-            this.minecraft.font.draw(poseStack, this.summary.getName(), i + 20, i1 + 20, 0x404040);
+        public void render(GuiGraphics guiGraphics, int i, int i1, int i2, int i3, int i4, int i5, int i6, boolean b, float v) {
+            guiGraphics.drawString(this.minecraft.font, this.summary.getName(), i + 20, i1 + 20, 0x404040);
         }
 
         public boolean isSelectable() {

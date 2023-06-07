@@ -16,8 +16,8 @@ repositories {
 }
 
 minecraft {
-    minecraftVersion = '1.19.1'
-    mappings 'official', '1.19.1'
+    minecraftVersion = '1.20'
+    mappings 'official', '1.20'
 }
 
 sourceSets {
@@ -64,8 +64,8 @@ dependencies {
         bootCompileOnly it
     }
 
-    mcClient bradle.deobf('net.minecraft:client:1.19.1:joined')
-    mcServer bradle.deobf('net.minecraft:server:1.19.1:joined', 'server')
+    mcClient bradle.deobf('net.minecraft:client:1.20:joined')
+    mcServer bradle.deobf('net.minecraft:server:1.20:joined', 'server')
 
     bootCompileOnly "cpw.mods:securejarhandler:$sshVersion"
     mixinCompileOnly "cpw.mods:securejarhandler:$sshVersion"
@@ -185,8 +185,8 @@ tasks.register('runClient', JavaExec) {
     args(
             '--launchTarget', 'brass:mcclient',
             '--accessToken', '***',
-            '--version', '1.19.1',
-            '--assetIndex', '1.19',
+            '--version', '1.20',
+            '--assetIndex', '1.20',
             '--assetsDir', downloadAssets.output
     )
     configureRunTask(it, 'client')

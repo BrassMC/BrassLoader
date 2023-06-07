@@ -1,7 +1,6 @@
 package io.github.brassmc.brassloader.gui;
 
-import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.gui.GuiComponent;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -18,7 +17,6 @@ public class ModsListScreen extends Screen {
 
     @Override
     protected void init() {
-        this.minecraft.keyboardHandler.setSendRepeatsToGui(true);
         this.searchBox = new EditBox(this.font, this.width / 2 - 100, 22, 200, 20, this.searchBox,
                 Component.translatable("brass.modsList.search"));
         this.searchBox.setResponder(str -> this.list.updateFilter(str));
@@ -46,11 +44,11 @@ public class ModsListScreen extends Screen {
     }
 
     @Override
-    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTicks) {
-        this.list.render(poseStack, mouseX, mouseY, partialTicks);
-        this.searchBox.render(poseStack, mouseX, mouseY, partialTicks);
-        GuiComponent.drawCenteredString(poseStack, this.font, this.title, this.width / 2, 8, 0xFFFFFF);
-        super.render(poseStack, mouseX, mouseY, partialTicks);
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+        this.list.render(graphics, mouseX, mouseY, partialTicks);
+        this.searchBox.render(graphics, mouseX, mouseY, partialTicks);
+        graphics.drawCenteredString(this.font, this.title, this.width / 2, 8, 0xFFFFFF);
+        super.render(graphics, mouseX, mouseY, partialTicks);
     }
 
     @Override
